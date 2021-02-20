@@ -1,0 +1,18 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+
+# Spyder project settings
+./.spyproject
+
+# Python template
+__pycache__/
+
+# Self generated sqlite3 db file
+*.db
