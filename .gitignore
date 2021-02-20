@@ -9,7 +9,7 @@ venv.bak/
 
 
 # Spyder project settings
-./.spyproject
+.spyproject
 
 # Python template
 __pycache__/
