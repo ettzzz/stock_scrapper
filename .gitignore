@@ -16,3 +16,6 @@ __pycache__/
 
 # Self generated sqlite3 db file
 *.db
+
+# MacOS temp file
+*.DS_Store

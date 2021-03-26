@@ -3,17 +3,31 @@
 import time
 import datetime
 
+DATE_FORMAT = "%Y-%m-%d"
 
 def get_now():
     return time.time()
 
 
-def struct_timestr(timestr, _format = '%Y-%m-%d'):
+def get_today_date():
+    today = datetime.datetime.now()
+    today_str = datetime.datetime.strftime(today, DATE_FORMAT)
+    return today_str
+
+
+def get_yesterday_date():
+    today = datetime.datetime.now()
+    yesterday = today - datetime.timedelta(days = 1)
+    yesterday_str = datetime.datetime.strftime(yesterday, DATE_FORMAT)
+    return yesterday_str
+
+
+def struct_timestr(timestr, _format = DATE_FORMAT):
     structed_time = time.strptime(timestr, _format)
     return structed_time
 
 
-def timestamper(time_str, _format):
+def timestamper(time_str, _format=DATE_FORMAT):
     '''
     time_in_str: '2016-05-27 07:07:26'
     _format: '%Y-%m-%d %H:%M:%S'
@@ -26,7 +40,7 @@ def timestamper(time_str, _format):
         return int(time.mktime(structed_time))
 
 
-def date_range(start, end, step=1, format_="%Y-%m-%d", category = 'all'):
+def date_range(start, end, step=1, format_=DATE_FORMAT, category = 'all'):
     strptime, strftime = datetime.datetime.strptime, datetime.datetime.strftime
     end = strftime(strptime(end, format_) + datetime.timedelta(1), format_)
     days = (strptime(end, format_) - strptime(start, format_)).days

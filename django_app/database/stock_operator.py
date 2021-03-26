@@ -7,11 +7,9 @@ class stockDatabaseOperator(sqliteBaseOperator):
     TODO:
         1.5 异步
         2.爬2019一年的数据
-        3.一个iteration怎么安排呢 拿特定的code 取这个code一个季度 或者一个月的交易数据，
-        每个code对应一个网络，单独安排reward曲线 
         4.500个feature有点多且有一些同质性比较强的 到时候注意挑选一下 还有没数据的 估计能剩300个？
         5.给date字段加index
-        
+
     '''
     def __init__(self, sql_dbfile_path):
         super().__init__(sql_dbfile_path)
@@ -22,8 +20,8 @@ class stockDatabaseOperator(sqliteBaseOperator):
             }
         self.stock_fields = {
             'field': {
-                'updateDate':['DATE', 'NOT NULL'], 
-                'code': ['TEXT', 'NOT NULL'], 
+                'updateDate':['DATE', 'NOT NULL'],
+                'code': ['TEXT', 'NOT NULL'],
                 'code_name': ['TEXT']
                 },
             'feature': {
@@ -56,7 +54,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 'pbMRQ': ['REAL']
                 },
             }
-        
+
         conn = self.on()
         for table in ['field', 'feature']:
             conn.execute(
@@ -65,14 +63,14 @@ class stockDatabaseOperator(sqliteBaseOperator):
                     self.stock_fields[table])
                 )
         self.off(conn)
-        
-    
+
+
     def purge_tables_with_caution(self, table_names = []):
         table_names = list(self.init_table_names.values()) if not table_names else table_names
         for t in table_names:
             self.delete_table(t)
-            
-    
+
+
     def _update_stock_list(self, code_list, feature_list, purge=False):
         '''
         Run this function first and insert feature data later
@@ -85,26 +83,26 @@ class stockDatabaseOperator(sqliteBaseOperator):
         if purge:
             self.purge_tables_with_caution()
         conn = self.on()
-        
+
         code_list_fields = list(self.stock_fields['field'].keys())
         conn.executemany(
             self.insert_batch_sql_command(
                 self.init_table_names['field'], code_list_fields
                 ), code_list
             )
-        
+
         feature_list_fields = list(self.stock_fields['feature'].keys())
         conn.executemany(
             self.insert_batch_sql_command(
                 self.init_table_names['feature'], feature_list_fields
                 ),feature_list
             )
-        
+
         self.off(conn)
         '''
         # we still need some extra procedures to build an available database,
         # which is kind of stupid for now
-        
+
         # a, b = his_scraper.scrape_pool_data()
         # c = his_scraper.scrape_feature_list()
         # his_operator._update_stock_list(a, c)
@@ -114,10 +112,8 @@ class stockDatabaseOperator(sqliteBaseOperator):
         # stacks = his_scraper.scrape_feature_data(feature_codes, start_date, end_date)
         # his_operator.insert_feature_data(feature_codes, stacks)
         '''
-        
-        
-        
-        
+
+
     def generate_scrape_config(self, code, start_date, end_date, _type):
         config = {
             'code': code,
@@ -134,12 +130,12 @@ class stockDatabaseOperator(sqliteBaseOperator):
             config['fields'] = ','.join(list(self.stock_fields['day'].keys()))
             config['frequency'] = 'd'
         return config
-        
-    
+
+
     def insert_min30_data(self, code, fetched, fields):
         for idx, f in enumerate(fetched):
             fetched[idx][1] = ':'.join([f[1][8:10], f[1][10:12], f[1][12:14]]) #  hh:mm:ss
-        
+
         table_name = 'min30_{}'.format(code.replace('.', '_'))
         conn = self.on()
         conn.execute(
@@ -150,10 +146,10 @@ class stockDatabaseOperator(sqliteBaseOperator):
         conn.executemany(
             self.insert_batch_sql_command(table_name, fields), fetched
             )
-        
+
         self.off(conn)
-    
-    
+
+
     def insert_day_data(self, code, fetched, fields):
         table_name = 'day_{}'.format(code.replace('.', '_'))
         conn = self.on()
@@ -166,8 +162,8 @@ class stockDatabaseOperator(sqliteBaseOperator):
             self.insert_batch_sql_command(table_name, fields), fetched
             )
         self.off(conn)
-    
-    
+
+
     def get_feature_codes(self):
         feature_codes = self.fetch_by_command(
             "SELECT code FROM {};".format(self.init_table_names['feature'])
@@ -180,36 +176,51 @@ class stockDatabaseOperator(sqliteBaseOperator):
             "SELECT code FROM {};".format(self.init_table_names['field'])
         )
         return all_codes
-    
+
+
+    def get_latest_date(self):
+        '''
+        TODO: try to coordinate this latest_date and global_feature
+
+        somehow there should be a place to record latest date scraped, will finish this
+        on PC later.
         
+        1. query db and get one, but it could be ambiguious because cannot 100% sure
+        if all codes are correctly scraped.
+        2. add a column in global table, such as 'update_on'
+        '''
+        return
+
+
     def insert_feature_data(self, feature_codes, stacked):
+        # Here feature means global feature, that 562 long array in the very beginning
         table_name = self.init_table_names['global']
-        
+
         global_field_dict = {'date': ['DATE']}
         fields = ['date']
         for code in feature_codes:
             global_field_dict[code[0].replace('.', '_')] = ['REAL']
             fields.append(code[0].replace('.', '_'))
-            
+
         conn = self.on()
         conn.execute(
             self.create_table_sql_command(
                 self.init_table_names['global'],
                 global_field_dict)
             )
-        
+
         conn.executemany(
             self.insert_batch_sql_command(table_name, fields), stacked
             )
-        
+
         self.off(conn)
-        
-        
+
+
     def get_train_data(self, code, start_date, end_date):
         min30_table = 'min30_{}'.format(code.replace('.', '_'))
         day_table = 'day_{}'.format(code.replace('.', '_'))
         feature_table =  self.init_table_names['global']
-        
+
         min30_data = self.fetch_by_command(
             "SELECT * FROM {} WHERE date BETWEEN '{}' AND '{}';".format(
                 min30_table, start_date, end_date)
@@ -226,12 +237,12 @@ class stockDatabaseOperator(sqliteBaseOperator):
         date_seq = [i[1] for i in day_data]
         date_dict = {i[1]: i for i in day_data}
         all_feature_dict = {i[1]: i for i in all_feature_data}
-        
+
         result = []
         for each_min in min30_data:
             uid, date, _time, _open, high, low, _close, volume = each_min
             date_index = date_seq.index(date)
-            
+
             if date_index == 0:
                 continue
             else:
@@ -246,6 +257,4 @@ class stockDatabaseOperator(sqliteBaseOperator):
                     'features': features
                     })
 
-        return result    
-        
-        
+        return result

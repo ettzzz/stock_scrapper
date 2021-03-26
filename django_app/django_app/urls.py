@@ -17,12 +17,13 @@ from django.contrib import admin
 from django.urls import path
 from django.conf.urls import include, url
 
-from . import views 
+from . import views
 
 
 api_v1 = [
-    url('fetch', views.codeFeaturesSender.as_view(), name='fetch_features'),
-    url('update', views.globalFeaturesUpdater.as_view(), name='update_features')
+    url('fetch', views.codeFeaturesSender.as_view(), name='fetch'),
+    url('update', views.globalFeaturesUpdater.as_view(), name='update'),
+    url('all_codes', views.allCodesSender.as_view(), name='all_codes'),
 ]
 
 
