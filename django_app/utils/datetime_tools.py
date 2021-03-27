@@ -5,6 +5,16 @@ import datetime
 
 DATE_FORMAT = "%Y-%m-%d"
 
+def struct_timestr(timestr, _format = DATE_FORMAT):
+    structed_time = time.strptime(timestr, _format)
+    return structed_time
+
+
+def struct_datestr(datestr, _format = DATE_FORMAT):
+    structed_date = datetime.datetime.strptime(datestr, _format)
+    return structed_date
+
+
 def get_now():
     return time.time()
 
@@ -15,17 +25,14 @@ def get_today_date():
     return today_str
 
 
-def get_yesterday_date():
-    today = datetime.datetime.now()
-    yesterday = today - datetime.timedelta(days = 1)
-    yesterday_str = datetime.datetime.strftime(yesterday, DATE_FORMAT)
-    return yesterday_str
-
-
-def struct_timestr(timestr, _format = DATE_FORMAT):
-    structed_time = time.strptime(timestr, _format)
-    return structed_time
-
+def get_delta_date(date, days):
+    # type(date) is str
+    # type(target_datestr) is str
+    strd = struct_datestr(date)
+    target_strd = strd + datetime.timedelta(days)
+    target_datestr = datetime.datetime.strftime(target_strd)
+    return target_datestr
+    
 
 def timestamper(time_str, _format=DATE_FORMAT):
     '''

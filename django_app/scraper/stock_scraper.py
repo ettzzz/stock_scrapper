@@ -96,8 +96,8 @@ class stockScraper():
         
         store = {date[0]: [] for date in dates}
         for idx, code in enumerate(feature_codes):
-            if idx % 100 == 0:
-                print('scraping feature {}/{}.'.format(idx + 1, len(feature_codes)))
+            # if idx % 100 == 0:
+            #     print('scraping feature {}/{}.'.format(idx + 1, len(feature_codes)))
             code = code[0]
             config = {
                 'code': code,

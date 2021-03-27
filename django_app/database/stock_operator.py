@@ -5,11 +5,8 @@ from .base_operator import sqliteBaseOperator
 class stockDatabaseOperator(sqliteBaseOperator):
     '''
     TODO:
-        1.5 异步
-        2.爬2019一年的数据
         4.500个feature有点多且有一些同质性比较强的 到时候注意挑选一下 还有没数据的 估计能剩300个？
         5.给date字段加index
-
     '''
     def __init__(self, sql_dbfile_path):
         super().__init__(sql_dbfile_path)
@@ -179,18 +176,11 @@ class stockDatabaseOperator(sqliteBaseOperator):
 
 
     def get_latest_date(self):
-        '''
-        TODO: try to coordinate this latest_date and global_feature
-
-        somehow there should be a place to record latest date scraped, will finish this
-        on PC later.
+        latest_date = self.fetch_by_command(
+            "SELECT MAX(date) FROM {};".format(self.init_table_names['global'])
+        )
+        return latest_date[0][0] # [('2019-12-31',)]
         
-        1. query db and get one, but it could be ambiguious because cannot 100% sure
-        if all codes are correctly scraped.
-        2. add a column in global table, such as 'update_on'
-        '''
-        return
-
 
     def insert_feature_data(self, feature_codes, stacked):
         # Here feature means global feature, that 562 long array in the very beginning
@@ -220,7 +210,10 @@ class stockDatabaseOperator(sqliteBaseOperator):
         min30_table = 'min30_{}'.format(code.replace('.', '_'))
         day_table = 'day_{}'.format(code.replace('.', '_'))
         feature_table =  self.init_table_names['global']
-
+        
+        if not self.table_info(min30_table): # this code is not stored in db
+            return []
+        
         min30_data = self.fetch_by_command(
             "SELECT * FROM {} WHERE date BETWEEN '{}' AND '{}';".format(
                 min30_table, start_date, end_date)
