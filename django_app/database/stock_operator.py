@@ -5,7 +5,6 @@ from .base_operator import sqliteBaseOperator
 class stockDatabaseOperator(sqliteBaseOperator):
     '''
     TODO:
-        4.500个feature有点多且有一些同质性比较强的 到时候注意挑选一下 还有没数据的 估计能剩300个？
         5.给date字段加index
     '''
     def __init__(self, sql_dbfile_path):
@@ -75,7 +74,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
         just a reminder:
             all mandatory params are from stock_scraper.scrape_pool_data
             code_list -> bs.query_zz500_stocks
-            feature_list -> beautifulsoup of 9 tables
+            feature_list -> beautifulsoup of 4 tables
         '''
         if purge:
             self.purge_tables_with_caution()
@@ -98,16 +97,20 @@ class stockDatabaseOperator(sqliteBaseOperator):
         self.off(conn)
         '''
         # we still need some extra procedures to build an available database,
-        # which is kind of stupid for now
+        # which is kind of stupid for now because scraper and operator are 
+        # different classes
 
-        # a, b = his_scraper.scrape_pool_data()
-        # c = his_scraper.scrape_feature_list()
-        # his_operator._update_stock_list(a, c)
-        # feature_codes = his_operator.get_feature_codes()
-        # start_date = '2019-01-01'
-        # end_date = '2019-01-31'
-        # stacks = his_scraper.scrape_feature_data(feature_codes, start_date, end_date)
-        # his_operator.insert_feature_data(feature_codes, stacks)
+        a, b = his_scraper.scrape_pool_data() # len(a) = 50
+        c = his_scraper.scrape_feature_list() # len(c) = 185
+        his_operator._update_stock_list(a, c)
+        
+        
+        # from here it's updating train-related data:
+        feature_codes = his_operator.get_feature_codes() # if len(feature_codes) = 0 then it's fresh new
+        start_date = '2019-01-01'
+        end_date = '2019-01-31'
+        stacks = his_scraper.scrape_feature_data(feature_codes, start_date, end_date)
+        his_operator.insert_feature_data(feature_codes, stacks)
         '''
 
 
@@ -176,10 +179,13 @@ class stockDatabaseOperator(sqliteBaseOperator):
 
 
     def get_latest_date(self):
-        latest_date = self.fetch_by_command(
-            "SELECT MAX(date) FROM {};".format(self.init_table_names['global'])
-        )
-        return latest_date[0][0] # [('2019-12-31',)]
+        try:
+            latest_date = self.fetch_by_command(
+                "SELECT MAX(date) FROM {};".format(self.init_table_names['global'])
+            )
+            return latest_date[0][0] # [('2019-12-31',)]
+        except:
+            return '2019-01-01' # in case that global table is not created
         
 
     def insert_feature_data(self, feature_codes, stacked):
@@ -242,7 +248,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 target_date = date_seq[date_index - 1]
                 features = [round((_close - _open)/_open, 6), round((high - low)/low, 6)] + \
                             list(date_dict[target_date][2:]) + \
-                            list(all_feature_dict[target_date][2:])
+                            list(all_feature_dict[target_date][2:]) # 185
                 result.append({
                     'code': code,
                     'timestamp': date + ' ' + _time,

@@ -19,6 +19,13 @@ from utils.datetime_tools import get_delta_date, get_today_date
 her_operator = stockDatabaseOperator(STOCK_HISTORY_PATH)
 her_scraper = stockScraper()
 
+if len(her_operator.get_feature_codes()) == 0:
+    print('there is no db file in the project. creating new one..')
+    zz500, _fields = her_scraper.scrape_pool_data(update_date=get_today_date())
+    global_features = her_scraper.scrape_feature_list()
+    her_operator._update_stock_list(zz500, global_features)
+    print('creating finished!, please call /api_v1/update')
+
 exe_boy = ThreadPoolExecutor(1) # TODO: how this boy is played?
 scheduler = BackgroundScheduler()
 scheduler.start()

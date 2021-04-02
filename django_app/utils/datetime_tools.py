@@ -30,7 +30,7 @@ def get_delta_date(date, days):
     # type(target_datestr) is str
     strd = struct_datestr(date)
     target_strd = strd + datetime.timedelta(days)
-    target_datestr = datetime.datetime.strftime(target_strd)
+    target_datestr = datetime.datetime.strftime(target_strd, DATE_FORMAT)
     return target_datestr
     
 
