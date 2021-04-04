@@ -42,7 +42,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 'volume': ['INTEGER'],
                 'isST': ['INTEGER'],
                 'tradestatus': ['INTEGER'],
-                'turn': ['REAL'],
+                'turn': ['REAL'], # used an ugly patch in update function, or could use ['REAL', 'DEFAULT 0']
                 'pctChg': ['REAL'],
                 'peTTM': ['REAL'],
                 'psTTM': ['REAL'],
@@ -97,14 +97,14 @@ class stockDatabaseOperator(sqliteBaseOperator):
         self.off(conn)
         '''
         # we still need some extra procedures to build an available database,
-        # which is kind of stupid for now because scraper and operator are 
+        # which is kind of stupid for now because scraper and operator are
         # different classes
 
         a, b = his_scraper.scrape_pool_data() # len(a) = 50
         c = his_scraper.scrape_feature_list() # len(c) = 185
         his_operator._update_stock_list(a, c)
-        
-        
+
+
         # from here it's updating train-related data:
         feature_codes = his_operator.get_feature_codes() # if len(feature_codes) = 0 then it's fresh new
         start_date = '2019-01-01'
@@ -161,6 +161,9 @@ class stockDatabaseOperator(sqliteBaseOperator):
         conn.executemany(
             self.insert_batch_sql_command(table_name, fields), fetched
             )
+        conn.execute(
+            "UPDATE {} SET turn=0 WHERE turn='';".format(table_name)
+        ) # ugly patch: in case tradestatus=0 then turn is null
         self.off(conn)
 
 
@@ -186,7 +189,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
             return latest_date[0][0] # [('2019-12-31',)]
         except:
             return '2019-01-01' # in case that global table is not created
-        
+
 
     def insert_feature_data(self, feature_codes, stacked):
         # Here feature means global feature, that 562 long array in the very beginning
@@ -216,10 +219,10 @@ class stockDatabaseOperator(sqliteBaseOperator):
         min30_table = 'min30_{}'.format(code.replace('.', '_'))
         day_table = 'day_{}'.format(code.replace('.', '_'))
         feature_table =  self.init_table_names['global']
-        
+
         if not self.table_info(min30_table): # this code is not stored in db
             return []
-        
+
         min30_data = self.fetch_by_command(
             "SELECT * FROM {} WHERE date BETWEEN '{}' AND '{}';".format(
                 min30_table, start_date, end_date)
