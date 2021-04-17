@@ -1,3 +1,3 @@
 #
 
-from .stock_scraper import stockScraper
+from . import stock_scraper

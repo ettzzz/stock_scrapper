@@ -216,6 +216,13 @@ class stockDatabaseOperator(sqliteBaseOperator):
 
 
     def get_train_data(self, code, start_date, end_date):
+        '''
+        features = 
+        2: 30min diff of close and open, 30min diff of high and low
+        6: day diff turn,pctChg,peTTM√,psTTM,pcfNcfTTM,pbMRQ√
+        185: day diff [185 indices]
+        '''
+        
         min30_table = 'min30_{}'.format(code.replace('.', '_'))
         day_table = 'day_{}'.format(code.replace('.', '_'))
         feature_table =  self.init_table_names['global']
@@ -251,12 +258,49 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 target_date = date_seq[date_index - 1]
                 features = [round((_close - _open)/_open, 6), round((high - low)/low, 6)] + \
                             list(date_dict[target_date][2:]) + \
-                            list(all_feature_dict[target_date][2:]) # 185
+                            list(all_feature_dict[target_date][2:]) # 2, 6 and 185
                 result.append({
                     'code': code,
                     'timestamp': date + ' ' + _time,
                     'close': _close,
                     'features': features
                     })
+
+        return result
+
+
+    def get_live_data(self, code, min30_data):
+        '''
+        min30_data should be shaped into [(a,b,c,d),(e,f,g,h)..] format
+        '''
+        day_table = 'day_{}'.format(code.replace('.', '_'))
+        feature_table =  self.init_table_names['global']
+        latest_trade_date = self.get_latest_date()
+
+        day_data = self.fetch_by_command(
+            "SELECT uid,date,turn,pctChg,peTTM,psTTM,pcfNcfTTM,pbMRQ\
+                FROM {} WHERE date BETWEEN '{}' AND '{}';".format(
+                day_table, latest_trade_date, latest_trade_date)
+            )
+        all_feature_data = self.fetch_by_command(
+            "SELECT * FROM {} WHERE date BETWEEN '{}' AND '{}';".format(
+                feature_table, latest_trade_date, latest_trade_date)
+            )
+        
+        date_dict = {i[1]: i for i in day_data}
+        all_feature_dict = {i[1]: i for i in all_feature_data}
+
+        result = []
+        for each_min in min30_data: # though this min30_data list only contains one tuples
+            date, _time, _open, high, low, _close = each_min
+            features = [round((_close - _open)/_open, 6), round((high - low)/low, 6)] + \
+                        list(date_dict[latest_trade_date][2:]) + \
+                        list(all_feature_dict[latest_trade_date][2:]) # 2, 6 and 185
+            result.append({
+                'code': code,
+                'timestamp': date + ' ' + _time,
+                'close': _close,
+                'features': features
+                })
 
         return result

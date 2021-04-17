@@ -10,7 +10,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 # well there are some articles about django_apscheduler, maybe I will
 # try them out maybe I will not
 
-from scraper import stockScraper
+from scraper import stockScraper, liveStockScraper
 from database import stockDatabaseOperator
 from config.static_vars import STOCK_HISTORY_PATH
 from utils.datetime_tools import get_delta_date, get_today_date
@@ -18,6 +18,7 @@ from utils.datetime_tools import get_delta_date, get_today_date
 
 her_operator = stockDatabaseOperator(STOCK_HISTORY_PATH)
 her_scraper = stockScraper()
+her_live_scraper = liveStockScraper()
 
 if len(her_operator.get_feature_codes()) == 0:
     print('there is no db file in the project. creating new one..')
@@ -44,6 +45,20 @@ class codeFeaturesSender(APIView):
         end_date = request.data['end_date']
 
         features = her_operator.get_train_data(code, start_date, end_date)
+        return Response(features)
+    
+
+class codeLiveFeaturesSender(APIView):
+    def post(self, request):
+        code = request.data['code']
+        if code.startswith('sh'):
+            live_data = her_live_scraper.sh_live_k_data(code)
+        elif code.startswith('sz'):
+            live_data = her_live_scraper.sz_live_k_data(code)
+        else:
+            return Response({})
+        
+        features = her_operator.get_live_data(code, live_data)
         return Response(features)
 
 
@@ -73,16 +88,16 @@ class globalFeaturesUpdater(APIView):
             except:
                 print(code, '\n')
                 traceback.print_exc() # for now it's all about no data
-                
+
         print('Update done!')
 
 
     def post(self, request):
         start_date = request.data['start_date']
         end_date = request.data['end_date']
-        
+
         latest_date = her_operator.get_latest_date()
-        
+
         if not start_date and not end_date:
             start_date = get_delta_date(latest_date, 1)
             today = get_today_date()
@@ -93,15 +108,15 @@ class globalFeaturesUpdater(APIView):
                 return Response({
                     'msg': 'end_date {} already in database!'.format(end_date)
                     })
-            
+
             if start_date <= latest_date:
                 start_date = get_delta_date(latest_date, 1)
-        
+
         scheduler.add_job(
             func = self.global_update,
             kwargs = {'start_date': start_date, 'end_date': end_date},
             trigger = 'date', # will do it immidiately
         )
         return Response({
-            'msg': 'Update started, start date from {}, end date util {}.'.format(start_date, end_date)
+            'msg': 'Update started, start date from {}, end date until {}.'.format(start_date, end_date)
             })
