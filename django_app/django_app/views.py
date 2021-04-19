@@ -12,7 +12,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from scraper import stockScraper, liveStockScraper
 from database import stockDatabaseOperator
-from config.static_vars import STOCK_HISTORY_PATH
+from config.static_vars import STOCK_HISTORY_PATH, DAY_ZERO
 from utils.datetime_tools import get_delta_date, get_today_date
 
 
@@ -30,7 +30,6 @@ if len(her_operator.get_feature_codes()) == 0:
 exe_boy = ThreadPoolExecutor(1) # TODO: how this boy is played?
 scheduler = BackgroundScheduler()
 scheduler.start()
-
 
 class allCodesSender(APIView):
     def get(self, request):
@@ -104,11 +103,14 @@ class globalFeaturesUpdater(APIView):
             yesterday = get_delta_date(today, -1)
             end_date = yesterday
         else:
+            if end_date <= DAY_ZERO:
+                return Response({
+                    'msg': 'end_date {} cannot be later than {}!'.format(end_date, DAY_ZERO)
+                    })
             if end_date <= latest_date:
                 return Response({
                     'msg': 'end_date {} already in database!'.format(end_date)
                     })
-
             if start_date <= latest_date:
                 start_date = get_delta_date(latest_date, 1)
 

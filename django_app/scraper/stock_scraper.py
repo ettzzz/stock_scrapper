@@ -7,7 +7,7 @@ import requests
 import baostock as bs
 
 from utils.datetime_tools import get_now
-from config.static_vars import UA
+from config.static_vars import UA, DAY_ZERO
 
 
 class stockScraper():
@@ -44,7 +44,7 @@ class stockScraper():
         return data, fields
 
 
-    def scrape_pool_data(self, update_date = '2019-01-01'):
+    def scrape_pool_data(self, update_date = DAY_ZERO):
         config = {
             'date': update_date
             }
@@ -127,6 +127,28 @@ class stockScraper():
 
 
 class liveStockScraper():
+    def _sh_formatter(self, before, cat = 'date'):
+        if cat == 'date':
+            before = str(before)
+            after = '-'.join([before[:4], before[4:6], before[6:]])
+        elif cat == 'time':
+            before = str(before)
+            after = ':'.join([before[:2], before[2:4]])
+        else:
+            after = before
+        return after
+    
+    
+    def _sz_formatter(self, before, cat = 'time'):
+        if cat == 'time':
+            after = before.split(' ')[-1][:5]
+        elif cat == 'date':
+            after = before.split(' ')[0]
+        else:
+            after = before
+        return after
+    
+    
     def sh_live_k_data(self, code, data_type = 'min'):
         '''
         http://www.sse.com.cn/market/price/trends/index.shtml?code=SH000004
@@ -166,8 +188,8 @@ class liveStockScraper():
             highest = max([l[1] for l in response['line'][-30:]])
             lowest = min([l[1] for l in response['line'][-30:]])
             live_data = [
-                response['date'],
-                response['time'],
+                self._sh_formatter(response['date'], cat='date'),
+                self._sh_formatter(response['time'], cat='time'),
                 response['line'][-30][1],
                 highest, #response['highest'],
                 lowest, #response['lowest'],
@@ -207,8 +229,8 @@ class liveStockScraper():
             highest = max([float(l[1]) for l in response['data']['picupdata'][-30:]])
             lowest = min([float(l[1]) for l in response['data']['picupdata'][-30:]])
             live_data = [
-                response['data']['marketTime'].split(' ')[0],
-                response['data']['marketTime'],
+                self._sz_formatter(response['data']['marketTime'], cat='date'),
+                self._sz_formatter(response['data']['marketTime'], cat='time'),
                 float(response['data']['picupdata'][-30][1]), #response['data']['open'],
                 highest, #response['data']['high'],
                 lowest, #response['data']['low'],
@@ -222,11 +244,10 @@ class liveStockScraper():
 
 '''
 TODOs:
-    2. live k data class怎么安排成能用的feature？效率如何？
-        改日期、时间 符合feature的样子, str-float
-    3. 找一天的数据验证一下和baostock的计算结果是否一致
-    4.把2017-2018的数据也搞进来
-
+    2. live k data class怎么安排成能用的feature？效率如何？挺高
+        改日期、时间 符合feature的样子, str-float 搞定
+    4.把2015-2018的数据也搞进来
+    5.我干 还有涨停/跌停的事儿 应该就是所有数据都一样 还行
 '''
 
 

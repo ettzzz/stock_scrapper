@@ -1,6 +1,6 @@
 
 from .base_operator import sqliteBaseOperator
-
+from config.static_vars import DAY_ZERO
 
 class stockDatabaseOperator(sqliteBaseOperator):
     '''
@@ -188,7 +188,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
             )
             return latest_date[0][0] # [('2019-12-31',)]
         except:
-            return '2019-01-01' # in case that global table is not created
+            return DAY_ZERO # in case that global table is not created
 
 
     def insert_feature_data(self, feature_codes, stacked):
