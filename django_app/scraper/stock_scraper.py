@@ -137,8 +137,8 @@ class liveStockScraper():
         else:
             after = before
         return after
-    
-    
+
+
     def _sz_formatter(self, before, cat = 'time'):
         if cat == 'time':
             after = before.split(' ')[-1][:5]
@@ -147,8 +147,8 @@ class liveStockScraper():
         else:
             after = before
         return after
-    
-    
+
+
     def sh_live_k_data(self, code, data_type = 'min'):
         '''
         http://www.sse.com.cn/market/price/trends/index.shtml?code=SH000004
@@ -158,7 +158,7 @@ class liveStockScraper():
             'Host': 'yunhq.sse.com.cn:32041',
             'Referer': 'http://www.sse.com.cn/'
             }
-        
+
         if data_type == 'min':
             base_url = 'http://yunhq.sse.com.cn:32041//v1/sh1/line/{}'.format(code.split('.')[-1])
             params = {
@@ -175,14 +175,15 @@ class liveStockScraper():
                 'select': 'date,open,high,low,close,volume',
                 '_': round(get_now()*1000)
                 }
-            
+
         r = requests.get(
             base_url,
             params = params,
             headers = headers
             )
-        
+
         # date, _time, _open, high, low, _close = each_min
+        result = []
         if r.status_code == 200:
             response = r.json()
             highest = max([l[1] for l in response['line'][-30:]])
@@ -197,9 +198,11 @@ class liveStockScraper():
                 ]
         else:
             live_data = []
-        return live_data
-    
-    
+
+        result.append(live_data)
+        return result
+
+
     def sz_live_k_data(self, code):
         '''
         http://www.szse.cn/market/trend/index.html?code=399623
@@ -220,10 +223,11 @@ class liveStockScraper():
             params = params,
             headers = headers
             )
-        
+
         #response['data']['picupdata'][0] structure:
         #time, close, avg, pctChg, 涨跌幅？,share, volume
         # date, _time, _open, high, low, _close = each_min
+        result = []
         if r.status_code == 200:
             response = r.json()
             highest = max([float(l[1]) for l in response['data']['picupdata'][-30:]])
@@ -238,8 +242,9 @@ class liveStockScraper():
                 ]
         else:
             live_data = []
-        
-        return live_data
+
+        result.append(live_data)
+        return result
 
 
 '''
@@ -249,5 +254,3 @@ TODOs:
     4.把2015-2018的数据也搞进来
     5.我干 还有涨停/跌停的事儿 应该就是所有数据都一样 还行
 '''
-
-

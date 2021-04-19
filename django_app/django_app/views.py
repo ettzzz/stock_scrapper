@@ -45,7 +45,7 @@ class codeFeaturesSender(APIView):
 
         features = her_operator.get_train_data(code, start_date, end_date)
         return Response(features)
-    
+
 
 class codeLiveFeaturesSender(APIView):
     def post(self, request):
@@ -55,8 +55,8 @@ class codeLiveFeaturesSender(APIView):
         elif code.startswith('sz'):
             live_data = her_live_scraper.sz_live_k_data(code)
         else:
-            return Response({})
-        
+            return Response({'msg': 'ohhhhh'})
+        print(live_data)
         features = her_operator.get_live_data(code, live_data)
         return Response(features)
 
