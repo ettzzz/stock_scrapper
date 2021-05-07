@@ -102,9 +102,10 @@ class globalFeaturesUpdater(APIView):
             today = get_today_date()
             yesterday = get_delta_date(today, -1)
             end_date = yesterday
-            if start_date > end_date:
-                start_date = end_date # this patch is for multiple request within one day
-            
+            if start_date > end_date:# this patch is for multiple request within one day
+                return Response({
+                    'msg': 'end_date {} already in database!'.format(end_date)
+                    })
         else:
             if end_date <= DAY_ZERO:
                 return Response({
