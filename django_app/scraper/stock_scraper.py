@@ -245,12 +245,3 @@ class liveStockScraper():
 
         result.append(live_data)
         return result
-
-
-'''
-TODOs:
-    2. live k data class怎么安排成能用的feature？效率如何？挺高
-        改日期、时间 符合feature的样子, str-float 搞定
-    4.把2015-2018的数据也搞进来
-    5.我干 还有涨停/跌停的事儿 应该就是所有数据都一样 还行
-'''
