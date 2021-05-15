@@ -25,6 +25,7 @@ api_v1 = [
     url('live', views.codeLiveFeaturesSender.as_view(), name='live'),
     url('update', views.globalFeaturesUpdater.as_view(), name='update'),
     url('all_codes', views.allCodesSender.as_view(), name='all_codes'),
+    url('code_name', views.codeNameMapping.as_view(), name='code_name'),
 ]
 
 

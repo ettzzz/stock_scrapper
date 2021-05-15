@@ -217,12 +217,12 @@ class stockDatabaseOperator(sqliteBaseOperator):
 
     def get_train_data(self, code, start_date, end_date):
         '''
-        features = 
+        features =
         2: 30min diff of close and open, 30min diff of high and low
         6: day diff turn,pctChg,peTTM√,psTTM,pcfNcfTTM,pbMRQ√
         185: day diff [185 indices]
         '''
-        
+
         min30_table = 'min30_{}'.format(code.replace('.', '_'))
         day_table = 'day_{}'.format(code.replace('.', '_'))
         feature_table =  self.init_table_names['global']
@@ -286,7 +286,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
             "SELECT * FROM {} WHERE date BETWEEN '{}' AND '{}';".format(
                 feature_table, latest_trade_date, latest_trade_date)
             )
-        
+
         date_dict = {i[1]: i for i in day_data}
         all_feature_dict = {i[1]: i for i in all_feature_data}
 
@@ -304,3 +304,13 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 })
 
         return result
+
+
+    def get_cn_name(self, codes):
+        name_data = self.fetch_by_command(
+            "SELECT code,code_name\
+                FROM {} WHERE code IN {};".format(
+                self.init_table_names['field'], str(tuple(codes)))
+            )
+
+        return dict(name_data)

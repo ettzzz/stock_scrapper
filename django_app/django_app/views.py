@@ -31,6 +31,15 @@ exe_boy = ThreadPoolExecutor(1) # TODO: how this boy is played?
 scheduler = BackgroundScheduler()
 scheduler.start()
 
+
+class codeNameMapping(APIView):
+    def post(self, request):
+        codes_str = request.data['codes']
+        codes = codes_str.split(',')
+        name_mapping = her_operator.get_cn_name(codes)
+        return Response(name_mapping)
+
+
 class allCodesSender(APIView):
     def get(self, request):
         all_codes = her_operator.get_all_codes()
