@@ -249,10 +249,12 @@ class stockDatabaseOperator(sqliteBaseOperator):
 
         result = []
         for each_min in min30_data:
-            uid, date, _time, _open, high, low, _close, volume = each_min
+            uid, date, _time, volume, _open, high, low, _close = each_min
             date_index = date_seq.index(date)
 
             if date_index == 0:
+                continue
+            if volume == 0:
                 continue
             else:
                 target_date = date_seq[date_index - 1]
