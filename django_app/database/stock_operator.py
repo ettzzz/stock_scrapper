@@ -258,7 +258,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 continue
             else:
                 target_date = date_seq[date_index - 1]
-                features = [round((_close - _open)/_open, 6), round((high - low)/low, 6)] + \
+                features = [round((_close - _open)/_open*100, 6), round((high - low)/low*100, 6)] + \
                             list(date_dict[target_date][2:]) + \
                             list(all_feature_dict[target_date][2:]) # 2, 6 and 185
                 result.append({
