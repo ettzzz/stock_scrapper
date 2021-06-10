@@ -249,7 +249,8 @@ class stockDatabaseOperator(sqliteBaseOperator):
 
         result = []
         for each_min in min30_data:
-            uid, date, _time, volume, _open, high, low, _close = each_min
+            uid, date, _time, volume, _open, high, low, _close = each_min # should be correct
+            # uid, date, _time, _open, high, low, _close, volume = each_min # should not be correct
             date_index = date_seq.index(date)
 
             if date_index == 0:
@@ -258,6 +259,8 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 continue
             else:
                 target_date = date_seq[date_index - 1]
+                # [round((low - volume)/volume, 6), round((_open - high)/high, 6)] + \
+                #
                 features = [round((_close - _open)/_open*100, 6), round((high - low)/low*100, 6)] + \
                             list(date_dict[target_date][2:]) + \
                             list(all_feature_dict[target_date][2:]) # 2, 6 and 185
