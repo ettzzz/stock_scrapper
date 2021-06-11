@@ -162,7 +162,7 @@ class liveStockScraper():
         if data_type == 'min':
             base_url = 'http://yunhq.sse.com.cn:32041//v1/sh1/line/{}'.format(code.split('.')[-1])
             params = {
-                'begin': -40,
+                'begin': -31,
                 'end': -1,
                 'select': 'time,price,volume',
                 '_': round(get_now()*1000)
@@ -183,17 +183,16 @@ class liveStockScraper():
             )
 
         # date, _time, _open, high, low, _close = each_min
+        
         result = []
         if r.status_code == 200:
             response = r.json()
-            highest = max([l[1] for l in response['line'][-30:]])
-            lowest = min([l[1] for l in response['line'][-30:]])
             live_data = [
                 self._sh_formatter(response['date'], cat='date'),
                 self._sh_formatter(response['time'], cat='time'),
-                response['line'][-30][1],
-                highest, #response['highest'],
-                lowest, #response['lowest'],
+                response['line'][0][1],
+                response['highest'],
+                response['lowest'],
                 response['line'][-1][1],
                 ]
         else:
@@ -230,14 +229,12 @@ class liveStockScraper():
         result = []
         if r.status_code == 200:
             response = r.json()
-            highest = max([float(l[1]) for l in response['data']['picupdata'][-30:]])
-            lowest = min([float(l[1]) for l in response['data']['picupdata'][-30:]])
             live_data = [
                 self._sz_formatter(response['data']['marketTime'], cat='date'),
                 self._sz_formatter(response['data']['marketTime'], cat='time'),
-                float(response['data']['picupdata'][-30][1]), #response['data']['open'],
-                highest, #response['data']['high'],
-                lowest, #response['data']['low'],
+                float(response['data']['picupdata'][0][1]), #response['data']['open'],
+                float(response['data']['high']),
+                float(response['data']['low']),
                 float(response['data']['picupdata'][-1][1]),
                 ]
         else:

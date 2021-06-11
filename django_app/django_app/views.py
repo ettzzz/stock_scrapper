@@ -59,14 +59,17 @@ class codeFeaturesSender(APIView):
 class codeLiveFeaturesSender(APIView):
     def post(self, request):
         code = request.data['code']
-        if code.startswith('sh'):
-            live_data = her_live_scraper.sh_live_k_data(code)
-        elif code.startswith('sz'):
-            live_data = her_live_scraper.sz_live_k_data(code)
-        else:
-            return Response({'msg': 'ohhhhh'})
-        features = her_operator.get_live_data(code, live_data)
-        return Response(features)
+        try:
+            if code.startswith('sh'):
+                live_data = her_live_scraper.sh_live_k_data(code)
+            elif code.startswith('sz'):
+                live_data = her_live_scraper.sz_live_k_data(code)
+            else:
+                return Response({'msg': 'ohhhhh'})
+            features = her_operator.get_live_data(code, live_data)
+            return Response(features)
+        except:
+            traceback.print_exc()
 
 
 class globalFeaturesUpdater(APIView):
