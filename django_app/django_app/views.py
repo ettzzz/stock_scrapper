@@ -35,8 +35,7 @@ scheduler.start()
 class codeNameMapping(APIView):
     def post(self, request):
         codes_str = request.data['codes']
-        codes = codes_str.split(',')
-        name_mapping = her_operator.get_cn_name(codes)
+        name_mapping = her_operator.get_cn_name(codes_str)
         return Response(name_mapping)
 
 

@@ -311,11 +311,12 @@ class stockDatabaseOperator(sqliteBaseOperator):
         return result
 
 
-    def get_cn_name(self, codes):
+    def get_cn_name(self, codes_str):
+        codes = codes_str.split(',')    
         name_data = self.fetch_by_command(
-            "SELECT code,code_name\
-                FROM {} WHERE code IN {};".format(
-                self.init_table_names['field'], str(tuple(codes)))
+            "SELECT code,code_name FROM {} WHERE code IN ({});".format(
+                self.init_table_names['field'], 
+                str(codes)[1:-1]
+                )
             )
-
         return dict(name_data)

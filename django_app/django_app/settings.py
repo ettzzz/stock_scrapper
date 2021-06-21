@@ -23,7 +23,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = '@c)6-e194mm9oozz@rh5u8qf3p^oudm-82+9nhkgg8%0$+%p_!'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+# DEBUG = True
+import platform
+os_type = platform.system()
+if os_type == 'Linux':
+    DEBUG = False
+else:
+    DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
