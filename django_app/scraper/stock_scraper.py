@@ -12,9 +12,13 @@ from config.static_vars import UA, DAY_ZERO
 
 class stockScraper():
     def __init__(self):
+        pass
+
+
+    def _relogin(self):
         bs.login()
-
-
+        
+        
     def call_baostock(self, baostock_raw):
         data_list = []
         while (baostock_raw.error_code == '0') & baostock_raw.next():
@@ -38,7 +42,7 @@ class stockScraper():
         '''
         raw = bs.query_history_k_data_plus(**config)
         if raw.error_msg == '网络接收错误。':
-            bs.login()
+            self._relogin()
             raw = bs.query_history_k_data_plus(**config)
         data, fields = self.call_baostock(raw)
         return data, fields

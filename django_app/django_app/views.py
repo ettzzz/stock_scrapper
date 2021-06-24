@@ -74,6 +74,7 @@ class codeLiveFeaturesSender(APIView):
 class globalFeaturesUpdater(APIView):
     def global_update(self, start_date, end_date):
         feature_codes = her_operator.get_feature_codes()
+        her_scraper._relogin()
         print('scraping global features...')
         stacked = her_scraper.scrape_feature_data(feature_codes, start_date, end_date)
         her_operator.insert_feature_data(feature_codes, stacked)
