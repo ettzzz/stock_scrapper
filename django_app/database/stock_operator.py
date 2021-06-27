@@ -47,7 +47,12 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 'peTTM': ['REAL'],
                 'psTTM': ['REAL'],
                 'pcfNcfTTM': ['REAL'],
-                'pbMRQ': ['REAL']
+                'pbMRQ': ['REAL'],
+                'open': ['REAL'],
+                'high': ['REAL'],
+                'low': ['REAL'],
+                'close': ['REAL'],
+                'preclose': ['REAL']
                 },
             }
 
@@ -298,7 +303,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 min30_table, start_date, end_date)
             )
         day_data = self.fetch_by_command(
-            "SELECT uid,date,turn,pctChg,peTTM,psTTM,pcfNcfTTM,pbMRQ\
+            "SELECT uid,date,turn,pctChg,peTTM,psTTM,pcfNcfTTM,pbMRQ,open,high,low,close,preclose\
                 FROM {} WHERE date BETWEEN '{}' AND '{}';".format(
                 day_table, start_date, end_date)
             )
@@ -314,7 +319,6 @@ class stockDatabaseOperator(sqliteBaseOperator):
         result = []
         for each_min in min30_data:
             uid, date, _time, volume, _open, high, low, _close = each_min # should be correct
-            # uid, date, _time, _open, high, low, _close, volume = each_min # should not be correct
             date_index = date_seq.index(date)
 
             if date_index < 3:
@@ -325,8 +329,12 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 target_dates = date_seq[date_index - 3: date_index]
                 features = [round((_close - _open)/_open*100, 6), round((high - low)/low*100, 6)] # 2
                 for target_date in target_dates: 
-                    features += (date_dict[target_date][2:]) # 3*6 = 18 in total
+                    features += list(date_dict[target_date][2:-5]) # 3*6 = 18 in total
                     features += list(all_feature_dict[target_date][2:]) # 3*12 = 36 in total
+                    d_open, d_high, d_low, d_close, d_preclose = date_dict[target_date][-5:]
+                    features += [round((d_close - d_open)/d_open*100, 6),
+                                 round((d_high-d_low)/d_low*100, 6),
+                                 round((d_close-d_preclose)/d_preclose*100, 6)]
                 
                 result.append({
                     'code': code,

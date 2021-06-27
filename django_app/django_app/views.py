@@ -22,6 +22,7 @@ her_live_scraper = liveStockScraper()
 
 if len(her_operator.get_feature_codes()) == 0:
     print('there is no db file in the project. creating new one..')
+    her_scraper._relogin()
     zz500, _fields = her_scraper.scrape_pool_data(update_date=get_today_date())
     global_features = her_scraper.scrape_feature_list()
     her_operator._update_stock_list(zz500, global_features)
