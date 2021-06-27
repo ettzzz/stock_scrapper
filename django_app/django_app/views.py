@@ -51,7 +51,7 @@ class codeFeaturesSender(APIView):
         start_date = request.data['start_date']
         end_date = request.data['end_date']
 
-        features = her_operator.get_train_data(code, start_date, end_date)
+        features = her_operator._get_train_data(code, start_date, end_date)
         return Response(features)
 
 

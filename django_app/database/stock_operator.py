@@ -272,6 +272,90 @@ class stockDatabaseOperator(sqliteBaseOperator):
                     })
 
         return result
+    
+    
+    def _get_train_data(self, code, start_date, end_date):
+        '''
+        features =
+        2: 30min diff of close and open, 30min diff of high and low
+        6: day diff turn,pctChg,peTTM√,psTTM,pcfNcfTTM,pbMRQ√
+        185: day diff [185 indices]
+        '''
+
+        min30_table = 'min30_{}'.format(code.replace('.', '_'))
+        day_table = 'day_{}'.format(code.replace('.', '_'))
+        feature_table =  self.init_table_names['global']
+        sf = ['sh.000001', 'sh.000003', 'sz.399908', 'sz.399909',\
+                             'sz.399910', 'sz.399911', 'sz.399912', 'sz.399913',\
+                            'sz.399914', 'sz.399915', 'sz.399916', 'sz.399917']
+        selected_features = list(map(lambda x: x.replace('.','_'), sf))
+
+        if not self.table_info(min30_table): # this code is not stored in db
+            return []
+
+        min30_data = self.fetch_by_command(
+            "SELECT * FROM {} WHERE date BETWEEN '{}' AND '{}';".format(
+                min30_table, start_date, end_date)
+            )
+        day_data = self.fetch_by_command(
+            "SELECT uid,date,turn,pctChg,peTTM,psTTM,pcfNcfTTM,pbMRQ\
+                FROM {} WHERE date BETWEEN '{}' AND '{}';".format(
+                day_table, start_date, end_date)
+            )
+        all_feature_data = self.fetch_by_command(
+            "SELECT uid,date,{} FROM {} WHERE date BETWEEN '{}' AND '{}';".format(
+                ','.join(selected_features), feature_table, start_date, end_date)
+            )
+        date_seq = [i[1] for i in day_data]
+        date_dict = {i[1]: i for i in day_data}
+        all_feature_dict = {i[1]: i for i in all_feature_data}
+        
+
+        result = []
+        for each_min in min30_data:
+            uid, date, _time, volume, _open, high, low, _close = each_min # should be correct
+            # uid, date, _time, _open, high, low, _close, volume = each_min # should not be correct
+            date_index = date_seq.index(date)
+
+            if date_index < 3:
+                continue
+            if volume == 0: # where tradeStatus is 0
+                continue
+            else:
+                target_dates = date_seq[date_index - 3: date_index]
+                features = [round((_close - _open)/_open*100, 6), round((high - low)/low*100, 6)] # 2
+                for target_date in target_dates: 
+                    features += (date_dict[target_date][2:]) # 3*6 = 18 in total
+                    features += list(all_feature_dict[target_date][2:]) # 3*12 = 36 in total
+                
+                result.append({
+                    'code': code,
+                    'timestamp': date + ' ' + _time,
+                    'close': _close,
+                    'features': features
+                    })
+
+        return result
+
+
+# start_date = '2015-01-01'
+# end_date = '2021-05-31'
+# codes = her_operator.get_feature_codes()
+# codes = list(map(lambda x: x[0], codes))
+
+# codes = ['sh.000001', 'sh.000002', 'sh.000003']
+# codes_str = ','.join(list(map(lambda x: x.replace('.', '_'), codes)))
+# sh1 = her_operator.fetch_by_command("SELECT {} FROM {} WHERE date BETWEEN '{}' AND '{}';".format(codes_str, feature_table, start_date, end_date))
+# a = np.corrcoef(np.array(sh1).T)
+# sel = []
+# for idx, i in enumerate(a[0]):
+#     if not i:
+#         continue
+#     if i <= 0.6:
+#         sel.append(codes[idx])
+
+# her_operator.fetch_by_command("SELECT code,code_name, code_fullname FROM all_feature_codes WHERE code IN ({});".format(str(sel)[1:-1]))
+
 
 
     def get_live_data(self, code, min30_data):
