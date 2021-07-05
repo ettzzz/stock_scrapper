@@ -254,8 +254,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
 
         result = []
         for each_min in min30_data:
-            uid, date, _time, volume, _open, high, low, _close = each_min # should be correct
-            # uid, date, _time, _open, high, low, _close, volume = each_min # should not be correct
+            uid, date, _time, volume, _open, high, low, _close = each_min
             date_index = date_seq.index(date)
 
             if date_index == 0:
@@ -264,8 +263,6 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 continue
             else:
                 target_date = date_seq[date_index - 1]
-                # [round((low - volume)/volume, 6), round((_open - high)/high, 6)] + \
-                #
                 features = [round((_close - _open)/_open*100, 6), round((high - low)/low*100, 6)] + \
                             list(date_dict[target_date][2:]) + \
                             list(all_feature_dict[target_date][2:]) # 2, 6 and 185
@@ -280,13 +277,6 @@ class stockDatabaseOperator(sqliteBaseOperator):
     
     
     def _get_train_data(self, code, start_date, end_date):
-        '''
-        features =
-        2: 30min diff of close and open, 30min diff of high and low
-        6: day diff turn,pctChg,peTTM√,psTTM,pcfNcfTTM,pbMRQ√
-        185: day diff [185 indices]
-        '''
-
         min30_table = 'min30_{}'.format(code.replace('.', '_'))
         day_table = 'day_{}'.format(code.replace('.', '_'))
         feature_table =  self.init_table_names['global']
@@ -334,7 +324,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
                     d_open, d_high, d_low, d_close, d_preclose = date_dict[target_date][-5:]
                     features += [round((d_close - d_open)/d_open*100, 6),
                                  round((d_high-d_low)/d_low*100, 6),
-                                 round((d_close-d_preclose)/d_preclose*100, 6)]
+                                 round((d_close-d_preclose)/d_preclose*100, 6)] # 3 * 3
                 
                 result.append({
                     'code': code,
