@@ -4,8 +4,10 @@ from config.static_vars import DAY_ZERO
 
 class stockDatabaseOperator(sqliteBaseOperator):
     '''
-    TODO:
-        5.给date字段加index
+    索引不应该使用在较小的表上。 hit
+    索引不应该使用在有频繁的大批量的更新或插入操作的表上。 hit
+    索引不应该使用在含有大量的 NULL 值的列上。 not hit
+    索引不应该使用在频繁操作的列上。 not hit
     '''
     def __init__(self, sql_dbfile_path):
         super().__init__(sql_dbfile_path)

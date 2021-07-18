@@ -15,7 +15,6 @@ from database import stockDatabaseOperator
 from config.static_vars import STOCK_HISTORY_PATH, DAY_ZERO
 from utils.datetime_tools import get_delta_date, get_today_date
 
-
 her_operator = stockDatabaseOperator(STOCK_HISTORY_PATH)
 her_scraper = stockScraper()
 her_live_scraper = liveStockScraper()
@@ -92,8 +91,8 @@ class globalFeaturesUpdater(APIView):
                 config_min = her_operator.generate_scrape_config(
                     code, start_date, end_date, 'minute')
                 fetched, fields = her_scraper.scrape_k_data(config_min)
-                if len(fields) == 0:
-                    continue
+                if idx == 0:
+                    print('length of fetched', len(fetched))
                 her_operator.insert_min30_data(code, fetched, fields)
 
                 config_day = her_operator.generate_scrape_config(
