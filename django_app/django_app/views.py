@@ -52,24 +52,28 @@ class codeFeaturesSender(APIView):
         start_date = request.data['start_date']
         end_date = request.data['end_date']
 
-        features = her_operator._get_train_data(code, start_date, end_date)
+        features = her_operator.get_train_data(code, start_date, end_date)
         return Response(features)
 
 
 class codeLiveFeaturesSender(APIView):
     def post(self, request):
-        code = request.data['code']
-        try:
+        code_str = request.data['code_str']
+        date_str = request.data['date_str']        
+        codes = code_str.split(',')
+        dates = date_str.split(',')
+        
+        partial_features = her_operator.get_partial_live_data(codes, dates)
+        '''
+        # rebuild this block when needed
+        for code in codes:
             if code.startswith('sh'):
                 live_data = her_live_scraper.sh_live_k_data(code)
-            elif code.startswith('sz'):
-                live_data = her_live_scraper.sz_live_k_data(code)
             else:
-                return Response({'msg': 'ohhhhh'})
-            features = her_operator.get_live_data(code, live_data)
-            return Response(features)
-        except:
-            traceback.print_exc()
+                live_data = her_live_scraper.sz_live_k_data(code)
+        '''      
+        features = partial_features
+        return Response(features)
 
 
 class globalFeaturesUpdater(APIView):
