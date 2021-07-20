@@ -80,7 +80,7 @@ class globalFeaturesUpdater(APIView):
     
     def global_update(self, min_start_date, day_start_date, feature_start_date):
         her_scraper._relogin()
-        end_date = get_delta_date(get_today_date(), -1)
+        end_date = get_today_date()
         all_codes = her_operator.get_all_codes()
         for idx, code in enumerate(all_codes):
             code = code[0]
@@ -127,8 +127,8 @@ class globalFeaturesUpdater(APIView):
             trigger = 'date', # will do it immidiately
         )
         return Response({
-            'msg': 'Update started, min start date from {}, \
-                day start date from {}, \
-                    feature start date from {}.'.format(min_start_date,
+            'msg': 'Update started, min start date from {},'\
+                'day start date from {},'\
+                'feature start date from {}.'.format(min_start_date,
                 day_start_date, feature_start_date)
             })
