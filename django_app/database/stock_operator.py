@@ -2,13 +2,15 @@
 from .base_operator import sqliteBaseOperator
 from config.static_vars import DAY_ZERO
 
-class stockDatabaseOperator(sqliteBaseOperator):
-    '''
+'''
     索引不应该使用在较小的表上。 hit
     索引不应该使用在有频繁的大批量的更新或插入操作的表上。 hit
     索引不应该使用在含有大量的 NULL 值的列上。 not hit
     索引不应该使用在频繁操作的列上。 not hit
-    '''
+'''
+
+
+class stockDatabaseOperator(sqliteBaseOperator):
     def __init__(self, sql_dbfile_path):
         super().__init__(sql_dbfile_path)
         self.init_table_names = {
@@ -188,10 +190,17 @@ class stockDatabaseOperator(sqliteBaseOperator):
         return all_codes
 
 
-    def get_latest_date(self):
+    def get_latest_date(self, _type = 'min'):
         try:
+            if _type == 'min':
+                table_name = 'min30_sh_600006' # ugly patch
+            elif _type == 'day':
+                table_name = 'day_sh_600006' # also ugly patch
+            else:
+                table_name = self.init_table_names['global']
+            
             latest_date = self.fetch_by_command(
-                "SELECT MAX(date) FROM {};".format(self.init_table_names['global'])
+                "SELECT MAX(date) FROM {};".format(table_name)
             )
             return latest_date[0][0] # [('2019-12-31',)]
         except:

@@ -77,76 +77,58 @@ class codeLiveFeaturesSender(APIView):
 
 
 class globalFeaturesUpdater(APIView):
-    def global_update(self, start_date, end_date):
+    
+    def global_update(self, min_start_date, day_start_date, feature_start_date):
         her_scraper._relogin()
-        whole = True
+        end_date = get_delta_date(get_today_date(), -1)
         all_codes = her_operator.get_all_codes()
-        print('scraping single code...')
         for idx, code in enumerate(all_codes):
             code = code[0]
             try:
                 config_min = her_operator.generate_scrape_config(
-                    code, start_date, end_date, 'minute')
+                    code, min_start_date, end_date, 'minute')
                 fetched, fields = her_scraper.scrape_k_data(config_min)
-                if len(fetched) == 0:
-                    whole = False
-                    call_bot_dispatch(
-                        to = 'blog_notify_bot',
-                        link = '/',
-                        text = '{} baostock拉胯了'.format(end_date)
-                        )
-                    break
+                # if len(fetched) == 0:
+                #     call_bot_dispatch(
+                #         to = 'blog_notify_bot',
+                #         link = '/',
+                #         text = '{} baostock拉胯了'.format(end_date)
+                #         )
+                #     break
                 her_operator.insert_min30_data(code, fetched, fields)
 
                 config_day = her_operator.generate_scrape_config(
-                    code, start_date, end_date, 'day')
+                    code, day_start_date, end_date, 'day')
                 fetched, fields = her_scraper.scrape_k_data(config_day)
                 her_operator.insert_day_data(code, fetched, fields)
             except:
                 print(code, '\n')
                 traceback.print_exc() # for now it's all about no data
                 
-        if whole:
-            print('scraping global features...')
-            feature_codes = her_operator.get_feature_codes()
-            stacked = her_scraper.scrape_feature_data(feature_codes, start_date, end_date)
-            her_operator.insert_feature_data(feature_codes, stacked)
+        feature_codes = her_operator.get_feature_codes()
+        stacked = her_scraper.scrape_feature_data(feature_codes, feature_start_date, end_date)
+        her_operator.insert_feature_data(feature_codes, stacked)
 
         print('Update done!')
 
 
     def post(self, request):
-        start_date = request.data['start_date']
-        end_date = request.data['end_date']
-
-        latest_date = her_operator.get_latest_date()
-
-        if not start_date and not end_date:
-            start_date = get_delta_date(latest_date, 1)
-            today = get_today_date()
-            yesterday = get_delta_date(today, -1)
-            end_date = yesterday
-            if start_date > end_date:# this patch is for multiple request within one day
-                return Response({
-                    'msg': 'end_date {} already in database!'.format(end_date)
-                    })
-        else:
-            if end_date <= DAY_ZERO:
-                return Response({
-                    'msg': 'end_date {} cannot be later than {}!'.format(end_date, DAY_ZERO)
-                    })
-            if end_date <= latest_date:
-                return Response({
-                    'msg': 'end_date {} already in database!'.format(end_date)
-                    })
-            if start_date <= latest_date:
-                start_date = get_delta_date(latest_date, 1)
-
+        min_start_date = her_operator.get_latest_date(_type='min')
+        day_start_date = her_operator.get_latest_date(_type='day')
+        feature_start_date = her_operator.get_latest_date(_type='whatever')
+        
         scheduler.add_job(
             func = self.global_update,
-            kwargs = {'start_date': start_date, 'end_date': end_date},
+            kwargs = {
+                'min_start_date': min_start_date,
+                'day_start_date': day_start_date,
+                'feature_start_date': feature_start_date
+                },
             trigger = 'date', # will do it immidiately
         )
         return Response({
-            'msg': 'Update started, start date from {}, end date until {}.'.format(start_date, end_date)
+            'msg': 'Update started, min start date from {}, \
+                day start date from {}, \
+                    feature start date from {}.'.format(min_start_date,
+                day_start_date, feature_start_date)
             })
