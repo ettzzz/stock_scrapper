@@ -14,6 +14,7 @@ from scraper import stockScraper, liveStockScraper
 from database import stockDatabaseOperator
 from config.static_vars import STOCK_HISTORY_PATH, DAY_ZERO
 from utils.datetime_tools import get_delta_date, get_today_date
+from utils.internet_tools import call_bot_dispatch
 
 her_operator = stockDatabaseOperator(STOCK_HISTORY_PATH)
 her_scraper = stockScraper()
@@ -77,12 +78,8 @@ class codeLiveFeaturesSender(APIView):
 
 class globalFeaturesUpdater(APIView):
     def global_update(self, start_date, end_date):
-        feature_codes = her_operator.get_feature_codes()
         her_scraper._relogin()
-        print('scraping global features...')
-        stacked = her_scraper.scrape_feature_data(feature_codes, start_date, end_date)
-        her_operator.insert_feature_data(feature_codes, stacked)
-
+        whole = True
         all_codes = her_operator.get_all_codes()
         print('scraping single code...')
         for idx, code in enumerate(all_codes):
@@ -91,8 +88,14 @@ class globalFeaturesUpdater(APIView):
                 config_min = her_operator.generate_scrape_config(
                     code, start_date, end_date, 'minute')
                 fetched, fields = her_scraper.scrape_k_data(config_min)
-                if idx == 0:
-                    print('length of fetched', len(fetched))
+                if len(fetched) == 0:
+                    whole = False
+                    call_bot_dispatch(
+                        to = 'blog_notify_bot',
+                        link = '/',
+                        text = '{} baostock拉胯了'.format(end_date)
+                        )
+                    break
                 her_operator.insert_min30_data(code, fetched, fields)
 
                 config_day = her_operator.generate_scrape_config(
@@ -102,6 +105,12 @@ class globalFeaturesUpdater(APIView):
             except:
                 print(code, '\n')
                 traceback.print_exc() # for now it's all about no data
+                
+        if whole:
+            print('scraping global features...')
+            feature_codes = her_operator.get_feature_codes()
+            stacked = her_scraper.scrape_feature_data(feature_codes, start_date, end_date)
+            her_operator.insert_feature_data(feature_codes, stacked)
 
         print('Update done!')
 
