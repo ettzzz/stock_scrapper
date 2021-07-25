@@ -53,12 +53,29 @@ class stockScraper():
             'date': update_date
             }
         raw = bs.query_zz500_stocks(**config)
-        # bs.query_stock_industry()
         if raw.error_msg == '网络接收错误。':
             bs.login()
             raw = bs.query_zz500_stocks(**config)
         data, fields = self.call_baostock(raw)
         return data, fields
+    
+    
+    def scrape_whole_pool_data(self, update_date = DAY_ZERO):
+        config = {
+            'date': update_date
+            }
+        raw = bs.query_stock_industry(**config)
+        if raw.error_msg == '网络接收错误。':
+            bs.login()
+            raw = bs.query_stock_industry(**config)
+        data, fields = self.call_baostock(raw)
+        
+        remove_st = []
+        for d in data:
+            if 'ST' in d[2]:
+                continue
+            remove_st.append(d)
+        return remove_st, fields
 
 
     def scrape_feature_list(self):

@@ -1,4 +1,5 @@
 
+import os
 from .base_operator import sqliteBaseOperator
 from config.static_vars import DAY_ZERO
 
@@ -12,9 +13,10 @@ from config.static_vars import DAY_ZERO
 
 class stockDatabaseOperator(sqliteBaseOperator):
     def __init__(self, sql_dbfile_path):
-        super().__init__(sql_dbfile_path)
+            
         self.init_table_names = {
-            'field': 'all_zz500_codes',
+            'field': 'all_zz500_codes', 
+            'whole_field': 'all_codes',
             'feature': 'all_feature_codes',
             'global': 'all_feature_data'
             }
@@ -23,6 +25,13 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 'updateDate':['DATE', 'NOT NULL'],
                 'code': ['TEXT', 'NOT NULL'],
                 'code_name': ['TEXT']
+                },
+            'whole_field': {
+                'updateDate':['DATE', 'NOT NULL'],
+                'code': ['TEXT', 'NOT NULL'],
+                'code_name': ['TEXT'],
+                'industry': ['TEXT'],
+                'industryClassification': ['TEXT']
                 },
             'feature': {
                 'code': ['TEXT', 'NOT NULL'],
@@ -59,15 +68,19 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 'preclose': ['REAL']
                 },
             }
-
-        conn = self.on()
-        for table in ['field', 'feature']:
-            conn.execute(
-                self.create_table_sql_command(
-                    self.init_table_names[table],
-                    self.stock_fields[table])
-                )
-        self.off(conn)
+        
+        if not os.path.exists(sql_dbfile_path):
+            super().__init__(sql_dbfile_path)
+            conn = self.on()
+            for table in ['field', 'feature', 'whole_field']:
+                conn.execute(
+                    self.create_table_sql_command(
+                        self.init_table_names[table],
+                        self.stock_fields[table])
+                    )
+            self.off(conn)
+        else:
+            super().__init__(sql_dbfile_path)
 
 
     def purge_tables_with_caution(self, table_names = []):
@@ -76,7 +89,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
             self.delete_table(t)
 
 
-    def _update_stock_list(self, code_list, feature_list, purge=False):
+    def _update_stock_list(self, code_list, feature_list, whole_code_list=None, purge=False):
         '''
         Run this function first and insert feature data later
         Could be an absolutely fragile function, no exception handling at all.
@@ -95,6 +108,13 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 self.init_table_names['field'], code_list_fields
                 ), code_list
             )
+        
+        whole_code_list_fields = list(self.stock_fields['whole_field'].keys())
+        conn.executemany(
+            self.insert_batch_sql_command(
+                self.init_table_names['whole_field'], whole_code_list_fields
+                ), whole_code_list
+            )
 
         feature_list_fields = list(self.stock_fields['feature'].keys())
         conn.executemany(
@@ -102,6 +122,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 self.init_table_names['feature'], feature_list_fields
                 ),feature_list
             )
+        
 
         self.off(conn)
         '''
@@ -183,19 +204,23 @@ class stockDatabaseOperator(sqliteBaseOperator):
         return feature_codes
 
 
-    def get_all_codes(self):
+    def get_all_codes(self, is_train = True):
+        if is_train:
+            table_name = self.init_table_names['field']
+        else:
+            table_name = self.init_table_names['whole_field']
         all_codes = self.fetch_by_command(
-            "SELECT code FROM {};".format(self.init_table_names['field'])
+            "SELECT code FROM {};".format(table_name)
         )
         return all_codes
 
 
-    def get_latest_date(self, _type = 'min'):
+    def get_latest_date(self, _type = 'min', code = 'sh.600006'):
         try:
             if _type == 'min':
-                table_name = 'min30_sh_600006' # ugly patch
+                table_name = 'min30_{}'.format(code.replace('.', '_'))
             elif _type == 'day':
-                table_name = 'day_sh_600006' # also ugly patch
+                table_name = 'day_{}'.format(code.replace('.', '_'))
             else:
                 table_name = self.init_table_names['global']
             

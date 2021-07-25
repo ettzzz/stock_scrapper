@@ -23,9 +23,11 @@ her_live_scraper = liveStockScraper()
 if len(her_operator.get_feature_codes()) == 0:
     print('there is no db file in the project. creating new one..')
     her_scraper._relogin()
-    zz500, _fields = her_scraper.scrape_pool_data(update_date=get_today_date())
+    today = get_today_date()
+    zz500, zz_fields = her_scraper.scrape_pool_data(update_date=today)
+    whole, whole_fields = her_scraper.scrape_whole_pool_data(update_date=today)
     global_features = her_scraper.scrape_feature_list()
-    her_operator._update_stock_list(zz500, global_features)
+    her_operator._update_stock_list(zz500, global_features, whole)
     print('creating finished!, please call /api_v1/update')
 
 exe_boy = ThreadPoolExecutor(1) # TODO: how this boy is played?
@@ -40,9 +42,15 @@ class codeNameMapping(APIView):
         return Response(name_mapping)
 
 
+class allTrainingCodesSender(APIView):
+    def get(self, request):
+        all_codes = her_operator.get_all_codes(is_train=True)
+        return Response(all_codes)
+    
+    
 class allCodesSender(APIView):
     def get(self, request):
-        all_codes = her_operator.get_all_codes()
+        all_codes = her_operator.get_all_codes(is_train=False)
         return Response(all_codes)
 
 
@@ -77,24 +85,18 @@ class codeLiveFeaturesSender(APIView):
 
 
 class globalFeaturesUpdater(APIView):
-    
     def global_update(self, min_start_date, day_start_date, feature_start_date):
         her_scraper._relogin()
         end_date = get_today_date()
-        all_codes = her_operator.get_all_codes()
+        all_codes = her_operator.get_all_codes(is_train=True)
         for idx, code in enumerate(all_codes):
             code = code[0]
             try:
                 config_min = her_operator.generate_scrape_config(
                     code, min_start_date, end_date, 'minute')
                 fetched, fields = her_scraper.scrape_k_data(config_min)
-                # if len(fetched) == 0:
-                #     call_bot_dispatch(
-                #         to = 'blog_notify_bot',
-                #         link = '/',
-                #         text = '{} baostock拉胯了'.format(end_date)
-                #         )
-                #     break
+                if len(fetched) == 0:
+                    continue
                 her_operator.insert_min30_data(code, fetched, fields)
 
                 config_day = her_operator.generate_scrape_config(
