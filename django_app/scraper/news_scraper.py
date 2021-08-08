@@ -1,11 +1,22 @@
 # -*- coding: utf-8 -*-
 
+import os
 import time
 import random
-from market_scrapper.sina import sinaScrapper
-from market_scrapper.yuncaijing import yuncaijingScrapper
 
-from utils.common_tools import date_range
+from scraper._sina import sinaScrapper
+from scraper._yuncaijing import yuncaijingScrapper
+from scraper._tonghuashun import tonghuashunScrapper
+from scraper._eastmoney import eastmoneyScrapper
+
+from utils.datetime_tools import date_range
+from config.static_vars import ROOT
+
+
+
+
+
+
 
 ss = sinaScrapper()
 ys = yuncaijingScrapper()
@@ -36,6 +47,7 @@ for t in years:
                         comment TEXT);".format(t))
     conn.commit()
     
+
 
 
 init_params = ss.get_params(_type = 0)
@@ -86,7 +98,7 @@ for date in dates:
     skip = 0
     while ycj_key:
         ycj_params = ys.get_params(page, date)    
-        ycj_news = ys.get_news(ycj_params)
+        ycj_news = ys.get_news(ycj_params, False)
         time.sleep(random.uniform(2, 4))
         
         if not ycj_news:
