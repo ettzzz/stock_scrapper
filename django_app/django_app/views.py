@@ -30,7 +30,7 @@ if len(her_operator.get_feature_codes()) == 0:
     her_operator._update_stock_list(zz500, global_features, whole)
     print('creating finished!, please call /api_v1/update')
 
-exe_boy = ThreadPoolExecutor(1) # TODO: how this boy is played?
+exe_boy = ThreadPoolExecutor(1)  # TODO: how this boy is played?
 scheduler = BackgroundScheduler()
 scheduler.start()
 
@@ -46,8 +46,8 @@ class allTrainingCodesSender(APIView):
     def get(self, request):
         all_codes = her_operator.get_all_codes(is_train=True)
         return Response(all_codes)
-    
-    
+
+
 class allCodesSender(APIView):
     def get(self, request):
         all_codes = her_operator.get_all_codes(is_train=False)
@@ -67,10 +67,10 @@ class codeFeaturesSender(APIView):
 class codeLiveFeaturesSender(APIView):
     def post(self, request):
         code_str = request.data['code_str']
-        date_str = request.data['date_str']        
+        date_str = request.data['date_str']
         codes = code_str.split(',')
         dates = date_str.split(',')
-        
+
         partial_features = her_operator.get_partial_live_data(codes, dates)
         '''
         # rebuild this block when needed
@@ -79,7 +79,7 @@ class codeLiveFeaturesSender(APIView):
                 live_data = her_live_scraper.sh_live_k_data(code)
             else:
                 live_data = her_live_scraper.sz_live_k_data(code)
-        '''      
+        '''
         features = partial_features
         return Response(features)
 
@@ -89,6 +89,10 @@ class globalFeaturesUpdater(APIView):
         her_scraper._relogin()
         end_date = get_today_date()
         all_codes = her_operator.get_all_codes(is_train=True)
+        min_start_date = get_delta_date(min_start_date, 1)
+        day_start_date = get_delta_date(day_start_date, 1)
+        feature_start_date = get_delta_date(feature_start_date, 1)
+
         for idx, code in enumerate(all_codes):
             code = code[0]
             try:
@@ -105,32 +109,31 @@ class globalFeaturesUpdater(APIView):
                 her_operator.insert_day_data(code, fetched, fields)
             except:
                 print(code, '\n')
-                traceback.print_exc() # for now it's all about no data
-                
+                traceback.print_exc()  # for now it's all about no data
+
         feature_codes = her_operator.get_feature_codes()
         stacked = her_scraper.scrape_feature_data(feature_codes, feature_start_date, end_date)
         her_operator.insert_feature_data(feature_codes, stacked)
 
         print('Update done!')
 
-
     def post(self, request):
         min_start_date = her_operator.get_latest_date(_type='min')
         day_start_date = her_operator.get_latest_date(_type='day')
         feature_start_date = her_operator.get_latest_date(_type='whatever')
-        
+
         scheduler.add_job(
-            func = self.global_update,
-            kwargs = {
+            func=self.global_update,
+            kwargs={
                 'min_start_date': min_start_date,
                 'day_start_date': day_start_date,
                 'feature_start_date': feature_start_date
-                },
-            trigger = 'date', # will do it immidiately
+            },
+            trigger='date',  # will do it immidiately
         )
         return Response({
-            'msg': 'Update started, min start date from {},'\
-                'day start date from {},'\
-                'feature start date from {}.'.format(min_start_date,
-                day_start_date, feature_start_date)
-            })
+            'msg': 'Update started, min start date from {},'
+            'day start date from {},'
+            'feature start date from {}.'.format(min_start_date,
+                                                 day_start_date, feature_start_date)
+        })
