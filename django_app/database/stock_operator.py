@@ -13,9 +13,9 @@ from config.static_vars import DAY_ZERO
 
 class stockDatabaseOperator(sqliteBaseOperator):
     def __init__(self, sql_dbfile_path):
-            
+
         self.init_table_names = {
-            'field': 'all_zz500_codes', 
+            'field': 'all_zz500_codes',
             'whole_field': 'all_codes',
             'feature': 'all_feature_codes',
             'global': 'all_feature_data'
@@ -68,7 +68,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 'preclose': ['REAL']
                 },
             }
-        
+
         if not os.path.exists(sql_dbfile_path):
             super().__init__(sql_dbfile_path)
             conn = self.on()
@@ -108,7 +108,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 self.init_table_names['field'], code_list_fields
                 ), code_list
             )
-        
+
         whole_code_list_fields = list(self.stock_fields['whole_field'].keys())
         conn.executemany(
             self.insert_batch_sql_command(
@@ -122,7 +122,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 self.init_table_names['feature'], feature_list_fields
                 ),feature_list
             )
-        
+
 
         self.off(conn)
         '''
@@ -192,14 +192,14 @@ class stockDatabaseOperator(sqliteBaseOperator):
             self.insert_batch_sql_command(table_name, fields), fetched
             )
         conn.execute(
-            "UPDATE {} SET turn=0 WHERE turn='';".format(table_name)
+            "UPDATE '{}' SET turn=0 WHERE turn='';".format(table_name)
         ) # ugly patch: in case tradestatus=0 then turn is null
         self.off(conn)
 
 
     def get_feature_codes(self):
         feature_codes = self.fetch_by_command(
-            "SELECT code FROM {};".format(self.init_table_names['feature'])
+            "SELECT code FROM '{}';".format(self.init_table_names['feature'])
         )
         return feature_codes
 
@@ -210,7 +210,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
         else:
             table_name = self.init_table_names['whole_field']
         all_codes = self.fetch_by_command(
-            "SELECT code FROM {};".format(table_name)
+            "SELECT code FROM '{}';".format(table_name)
         )
         return all_codes
 
@@ -223,20 +223,20 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 table_name = 'day_{}'.format(code.replace('.', '_'))
             else:
                 table_name = self.init_table_names['global']
-            
+
             latest_date = self.fetch_by_command(
-                "SELECT MAX(date) FROM {};".format(table_name)
+                "SELECT MAX(date) FROM '{}';".format(table_name)
             )
             return latest_date[0][0] # [('2019-12-31',)]
         except:
             return DAY_ZERO # in case that global table is not created
-        
-        
+
+
     def get_cn_name(self, codes_str):
-        codes = codes_str.split(',')    
+        codes = codes_str.split(',')
         name_data = self.fetch_by_command(
-            "SELECT code,code_name FROM {} WHERE code IN ({});".format(
-                self.init_table_names['field'], 
+            "SELECT code,code_name FROM '{}' WHERE code IN ({});".format(
+                self.init_table_names['field'],
                 str(codes)[1:-1]
                 )
             )
@@ -266,7 +266,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
 
         self.off(conn)
 
-    
+
     def get_train_data(self, code, start_date, end_date):
         min30_table = 'min30_{}'.format(code.replace('.', '_'))
         day_table = 'day_{}'.format(code.replace('.', '_'))
@@ -282,22 +282,22 @@ class stockDatabaseOperator(sqliteBaseOperator):
             return []
 
         min30_data = self.fetch_by_command(
-            "SELECT * FROM {} WHERE date BETWEEN '{}' AND '{}';".format(
+            "SELECT * FROM '{}' WHERE date BETWEEN '{}' AND '{}';".format(
                 min30_table, start_date, end_date)
             )
         day_data = self.fetch_by_command(
             "SELECT uid,date,turn,pctChg,peTTM,psTTM,pcfNcfTTM,pbMRQ,open,high,low,close,preclose\
-                FROM {} WHERE date BETWEEN '{}' AND '{}';".format(
+                FROM '{}' WHERE date BETWEEN '{}' AND '{}';".format(
                 day_table, start_date, end_date)
             )
         all_feature_data = self.fetch_by_command(
-            "SELECT uid,date,{} FROM {} WHERE date BETWEEN '{}' AND '{}';".format(
+            "SELECT uid,date,{} FROM '{}' WHERE date BETWEEN '{}' AND '{}';".format(
                 ','.join(selected_features), feature_table, start_date, end_date)
             )
         date_seq = [i[1] for i in day_data]
         date_dict = {i[1]: i for i in day_data}
         all_feature_dict = {i[1]: i for i in all_feature_data}
-        
+
 
         result = []
         for each_min in min30_data:
@@ -311,14 +311,14 @@ class stockDatabaseOperator(sqliteBaseOperator):
             else:
                 target_dates = date_seq[date_index - 3: date_index]
                 features = [round((_close - _open)/_open*100, 6), round((high - low)/low*100, 6)] # 2
-                for target_date in target_dates: 
+                for target_date in target_dates:
                     features += list(date_dict[target_date][2:-5]) # 3*6 = 18 in total
                     features += list(all_feature_dict[target_date][2:]) # 3*12 = 36 in total
                     d_open, d_high, d_low, d_close, d_preclose = date_dict[target_date][-5:]
                     features += [round((d_close - d_open)/d_open*100, 6),
                                  round((d_high-d_low)/d_low*100, 6),
                                  round((d_close-d_preclose)/d_preclose*100, 6)] # 3 * 3
-                
+
                 result.append({
                     'code': code,
                     'timestamp': date + ' ' + _time,
@@ -339,24 +339,24 @@ class stockDatabaseOperator(sqliteBaseOperator):
             'sz.399914', 'sz.399915', 'sz.399916', 'sz.399917'
             ]
         selected_features = list(map(lambda x: x.replace('.','_'), sf))
-        
+
         results = dict()
         for code in codes:
             day_table = 'day_{}'.format(code.replace('.', '_'))
             day_data = self.fetch_by_command(
                 "SELECT uid,date,turn,pctChg,peTTM,psTTM,pcfNcfTTM,pbMRQ,open,high,low,close,preclose\
-                FROM {} WHERE date BETWEEN '{}' AND '{}';".format(
+                FROM '{}' WHERE date BETWEEN '{}' AND '{}';".format(
                 day_table, start_date, end_date)
             )
             all_feature_data = self.fetch_by_command(
-                "SELECT uid,date,{} FROM {} WHERE date BETWEEN '{}' AND '{}';".format(
+                "SELECT uid,date,{} FROM '{}' WHERE date BETWEEN '{}' AND '{}';".format(
                 ','.join(selected_features), feature_table, start_date, end_date)
             )
             date_dict = {i[1]: i for i in day_data}
             all_feature_dict = {i[1]: i for i in all_feature_data}
-            
+
             features = [] # should be 2 but here is blank
-            for target_date in dates: 
+            for target_date in dates:
                 features += list(date_dict[target_date][2:-5]) # 3*6 = 18 in total
                 features += list(all_feature_dict[target_date][2:]) # 3*12 = 36 in total
                 d_open, d_high, d_low, d_close, d_preclose = date_dict[target_date][-5:]
@@ -367,6 +367,3 @@ class stockDatabaseOperator(sqliteBaseOperator):
             results[code] = features
         
         return results
-
-
-    
