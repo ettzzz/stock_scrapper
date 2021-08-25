@@ -122,6 +122,7 @@ class globalFeaturesUpdater(APIView):
         day_start_date = her_operator.get_latest_date(_type='day')
         feature_start_date = her_operator.get_latest_date(_type='whatever')
 
+        tomorrow = get_delta_date(get_today_date(), 1)
         scheduler.add_job(
             func=self.global_update,
             kwargs={
@@ -129,7 +130,8 @@ class globalFeaturesUpdater(APIView):
                 'day_start_date': day_start_date,
                 'feature_start_date': feature_start_date
             },
-            trigger='date',  # will do it immidiately
+            trigger='date',
+            run_date='{} 04:01:00'.format(tomorrow)
         )
         return Response({
             'msg': 'Update started, min start date from {},'
