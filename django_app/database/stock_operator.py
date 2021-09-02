@@ -1,7 +1,7 @@
 
 import os
 from .base_operator import sqliteBaseOperator
-from config.static_vars import DAY_ZERO
+from config.static_vars import DAY_ZERO, IS_STOCK_WHOLE
 
 '''
     索引不应该使用在较小的表上。 hit
@@ -204,7 +204,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
         return feature_codes
 
 
-    def get_all_codes(self, is_train = True):
+    def get_all_codes(self, is_train = not IS_STOCK_WHOLE):
         if is_train:
             table_name = self.init_table_names['field']
         else:
@@ -365,5 +365,5 @@ class stockDatabaseOperator(sqliteBaseOperator):
                               round((d_close-d_preclose)/d_preclose*100, 6)] # 3*3=9 in total
 
             results[code] = features
-        
+
         return results

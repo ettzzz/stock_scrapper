@@ -35,6 +35,27 @@ scheduler = BackgroundScheduler()
 scheduler.start()
 
 
+'''
+
+爬取all_codes时候记得把没数据的踢出去，就57个的那个
+
+1.得建立一个对code的dispatch，sqlite按10年数据算，一个表数据不超过500万条
+min30一共1.25亿条
+min5一共7.53亿条
+day一共1600万条
+2. min30按sh/sz先分两半， 然后按前4位数分，预期100个code组成一个表
+每个表最多预计300万条，83个表， 100个表最多了
+3.day先按sh/sz分两半，然后按前3位数分，一共12个表
+每个表最多预计200万条数据
+最多xxx条数据似乎并没有极限。。哎
+
+4.wrapper baostock重新请求的
+5.wrapper sqlite on&off
+6.基本上就是把tablename做个mapping，query的时候得加code='xxx'
+
+'''
+
+
 class codeNameMapping(APIView):
     def post(self, request):
         codes_str = request.data['codes']
