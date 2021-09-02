@@ -57,10 +57,10 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 'tradestatus': ['INTEGER'],
                 'turn': ['REAL'], # used an ugly patch in update function, or could use ['REAL', 'DEFAULT 0']
                 'pctChg': ['REAL'],
-                'peTTM': ['REAL'],
-                'psTTM': ['REAL'],
-                'pcfNcfTTM': ['REAL'],
-                'pbMRQ': ['REAL'],
+                'peTTM': ['REAL'], # 滚动市盈率
+                'psTTM': ['REAL'], # 滚动市销率
+                'pcfNcfTTM': ['REAL'], # 滚动市现率
+                'pbMRQ': ['REAL'], # 市净率 
                 'open': ['REAL'],
                 'high': ['REAL'],
                 'low': ['REAL'],
@@ -365,5 +365,5 @@ class stockDatabaseOperator(sqliteBaseOperator):
                               round((d_close-d_preclose)/d_preclose*100, 6)] # 3*3=9 in total
 
             results[code] = features
-        
+
         return results
