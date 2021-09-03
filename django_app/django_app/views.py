@@ -23,6 +23,7 @@ her_live_scraper = liveStockScraper()
 
 def first_run_check():
     if IS_FIRST_RUN:
+        print('it\'s the first run on this instance, initiating basic tables...')
         today = get_today_date()
         her_operator._init_basic_tables()
         her_scraper._relogin()
@@ -34,18 +35,7 @@ def first_run_check():
     else:
         print('wow, hello again!')
 
-
 first_run_check()
-# if len(her_operator.get_feature_codes()) == 0:
-#     print('there is no db file in the project. creating new one..')
-#     her_scraper._relogin()
-#     today = get_today_date()
-#     zz500, zz_fields = her_scraper.scrape_pool_data(update_date=today)
-#     whole, whole_fields = her_scraper.scrape_whole_pool_data(update_date=today)
-#     global_features = her_scraper.scrape_feature_list()
-#     her_operator._update_stock_list(zz500, global_features, whole)
-#     print('creating finished!, please call /api_v1/update')
-
 exe_boy = ThreadPoolExecutor(1)  # TODO: how this boy is played?
 scheduler = BackgroundScheduler()
 scheduler.start()
@@ -90,7 +80,7 @@ class codeLiveFeaturesSender(APIView):
 
         partial_features = her_operator.get_partial_live_data(codes, dates)
         '''
-        # rebuild this block when needed
+        # rebuild this block when needed, now it's deprecated.
         for code in codes:
             if code.startswith('sh'):
                 live_data = her_live_scraper.sh_live_k_data(code)
@@ -112,23 +102,29 @@ class globalFeaturesUpdater(APIView):
         feature_start_date = get_delta_date(feature_start_date, 1)
 
         for idx, code in enumerate(all_codes):
+            if idx % 100 == 0:
+                print('update process {}/{}'.format(idx + 1, len(all_codes)))
             code = code[0]
+            conn = her_operator.on()
             try:
                 config_min = her_operator.generate_scrape_config(
                     code, min_start_date, end_date, 'min30')
                 fetched, fields = her_scraper.scrape_k_data(config_min)
                 if len(fetched) == 0:
+                    her_operator.off(conn)
                     continue  # so when there is no min30, day data will not be updated either
                     # TODO: think again whether the sequence could be switched
-                her_operator.insert_min30_data(code, fetched, fields)
+                her_operator.insert_min30_data(code, fetched, fields, conn)
 
                 config_day = her_operator.generate_scrape_config(
                     code, day_start_date, end_date, 'day')
                 fetched, fields = her_scraper.scrape_k_data(config_day)
-                her_operator.insert_day_data(code, fetched, fields)
+                her_operator.insert_day_data(code, fetched, fields, conn)
             except:
                 print(code, '\n')
                 traceback.print_exc()  # for now it's all about no data
+                
+            her_operator.off(conn)
 
         feature_codes = her_operator.get_feature_codes()
         stacked = her_scraper.scrape_feature_data(feature_codes, feature_start_date, end_date)
@@ -137,7 +133,7 @@ class globalFeaturesUpdater(APIView):
         print('Update done!')
 
     def post(self, request):
-        min_start_date = her_operator.get_latest_date(_type='min')
+        min_start_date = her_operator.get_latest_date(_type='min30')
         day_start_date = her_operator.get_latest_date(_type='day')
         feature_start_date = her_operator.get_latest_date(_type='whatever')
 
@@ -155,6 +151,9 @@ class globalFeaturesUpdater(APIView):
         return Response({
             'msg': 'Update started, min start date from {},'
             'day start date from {},'
-            'feature start date from {}.'.format(min_start_date,
-                                                 day_start_date, feature_start_date)
+            'feature start date from {}.'.format(
+                min_start_date,
+                day_start_date,
+                feature_start_date
+                )
         })

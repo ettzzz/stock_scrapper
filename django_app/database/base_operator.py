@@ -23,10 +23,13 @@ class sqliteBaseOperator():
         conn.close()
 
 
-    def fetch_by_command(self, sql_command):
-        conn = self.on()
-        result = conn.execute(sql_command).fetchall()
-        self.off(conn)
+    def fetch_by_command(self, sql_command, conn=None):
+        if conn is None:
+            conn = self.on()
+            result = conn.execute(sql_command).fetchall()
+            self.off(conn)
+        else:
+            result = conn.execute(sql_command).fetchall()
         return result
 
 
