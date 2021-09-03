@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 
@@ -7,59 +8,54 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from apscheduler.schedulers.background import BackgroundScheduler
 
-# well there are some articles about django_apscheduler, maybe I will
-# try them out maybe I will not
-
 from scraper import stockScraper, liveStockScraper
 from database import stockDatabaseOperator
-from config.static_vars import STOCK_HISTORY_PATH, DAY_ZERO
+from config.static_vars import STOCK_HISTORY_PATH
 from utils.datetime_tools import get_delta_date, get_today_date
-from utils.internet_tools import call_bot_dispatch
+# from utils.internet_tools import call_bot_dispatch
+
+IS_FIRST_RUN = not os.path.exists(STOCK_HISTORY_PATH)
 
 her_operator = stockDatabaseOperator(STOCK_HISTORY_PATH)
 her_scraper = stockScraper()
 her_live_scraper = liveStockScraper()
 
-if len(her_operator.get_feature_codes()) == 0:
-    print('there is no db file in the project. creating new one..')
-    her_scraper._relogin()
-    today = get_today_date()
-    zz500, zz_fields = her_scraper.scrape_pool_data(update_date=today)
-    whole, whole_fields = her_scraper.scrape_whole_pool_data(update_date=today)
-    global_features = her_scraper.scrape_feature_list()
-    her_operator._update_stock_list(zz500, global_features, whole)
-    print('creating finished!, please call /api_v1/update')
+
+def first_run_check():
+    if IS_FIRST_RUN:
+        today = get_today_date()
+        her_operator._init_basic_tables()
+        her_scraper._relogin()
+        zz500, zz_fields = her_scraper.scrape_pool_data(update_date=today)
+        all4000, all_fields = her_scraper.scrape_whole_pool_data(update_date=today)
+        global_features = her_scraper.scrape_feature_list()
+        her_operator._update_stock_list(zz500, global_features, all4000)
+        print('initiating basic tables finished!, please call /api_v1/update')
+    else:
+        print('wow, hello again!')
+
+
+first_run_check()
+# if len(her_operator.get_feature_codes()) == 0:
+#     print('there is no db file in the project. creating new one..')
+#     her_scraper._relogin()
+#     today = get_today_date()
+#     zz500, zz_fields = her_scraper.scrape_pool_data(update_date=today)
+#     whole, whole_fields = her_scraper.scrape_whole_pool_data(update_date=today)
+#     global_features = her_scraper.scrape_feature_list()
+#     her_operator._update_stock_list(zz500, global_features, whole)
+#     print('creating finished!, please call /api_v1/update')
 
 exe_boy = ThreadPoolExecutor(1)  # TODO: how this boy is played?
 scheduler = BackgroundScheduler()
 scheduler.start()
 
 
-'''
-
-爬取all_codes时候记得把没数据的踢出去，就57个的那个
-
-1.得建立一个对code的dispatch，sqlite按10年数据算，一个表数据不超过500万条
-min30一共1.25亿条
-min5一共7.53亿条
-day一共1600万条
-2. min30按sh/sz先分两半， 然后按前4位数分，预期100个code组成一个表
-每个表最多预计300万条，83个表， 100个表最多了
-3.day先按sh/sz分两半，然后按前3位数分，一共12个表
-每个表最多预计200万条数据
-最多xxx条数据似乎并没有极限。。哎
-
-4.wrapper baostock重新请求的
-5.wrapper sqlite on&off
-6.基本上就是把tablename做个mapping，query的时候得加code='xxx'
-
-'''
-
-
 class codeNameMapping(APIView):
     def post(self, request):
         codes_str = request.data['codes']
-        name_mapping = her_operator.get_cn_name(codes_str)
+        codes = codes_str.split(',')
+        name_mapping = her_operator.get_cn_name(codes)
         return Response(name_mapping)
 
 
@@ -108,8 +104,9 @@ class codeLiveFeaturesSender(APIView):
 class globalFeaturesUpdater(APIView):
     def global_update(self, min_start_date, day_start_date, feature_start_date):
         her_scraper._relogin()
+        all_codes = her_operator.get_all_codes()  # 500 or 4000 will be decided by static_vars
+
         end_date = get_today_date()
-        all_codes = her_operator.get_all_codes(is_train=True)
         min_start_date = get_delta_date(min_start_date, 1)
         day_start_date = get_delta_date(day_start_date, 1)
         feature_start_date = get_delta_date(feature_start_date, 1)
@@ -118,10 +115,11 @@ class globalFeaturesUpdater(APIView):
             code = code[0]
             try:
                 config_min = her_operator.generate_scrape_config(
-                    code, min_start_date, end_date, 'minute')
+                    code, min_start_date, end_date, 'min30')
                 fetched, fields = her_scraper.scrape_k_data(config_min)
                 if len(fetched) == 0:
-                    continue
+                    continue  # so when there is no min30, day data will not be updated either
+                    # TODO: think again whether the sequence could be switched
                 her_operator.insert_min30_data(code, fetched, fields)
 
                 config_day = her_operator.generate_scrape_config(

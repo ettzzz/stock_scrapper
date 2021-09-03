@@ -14,11 +14,9 @@ class stockScraper():
     def __init__(self):
         pass
 
-
     def _relogin(self):
         bs.login()
-        
-        
+
     def call_baostock(self, baostock_raw):
         data_list = []
         while (baostock_raw.error_code == '0') & baostock_raw.next():
@@ -27,7 +25,6 @@ class stockScraper():
             return [], []
         else:
             return data_list, baostock_raw.fields
-
 
     def scrape_k_data(self, config):
         '''
@@ -47,58 +44,56 @@ class stockScraper():
         data, fields = self.call_baostock(raw)
         return data, fields
 
-
-    def scrape_pool_data(self, update_date = DAY_ZERO):
+    def scrape_pool_data(self, update_date=DAY_ZERO):
         config = {
             'date': update_date
-            }
+        }
         raw = bs.query_zz500_stocks(**config)
         if raw.error_msg == '网络接收错误。':
             bs.login()
             raw = bs.query_zz500_stocks(**config)
         data, fields = self.call_baostock(raw)
         return data, fields
-    
-    
-    def scrape_whole_pool_data(self, update_date = DAY_ZERO):
+
+    def scrape_whole_pool_data(self, update_date=DAY_ZERO):
         config = {
             'date': update_date
-            }
+        }
         raw = bs.query_stock_industry(**config)
         if raw.error_msg == '网络接收错误。':
             bs.login()
             raw = bs.query_stock_industry(**config)
         data, fields = self.call_baostock(raw)
-        
-        remove_st = []
-        for d in data:
-            if 'ST' in d[2]:
-                continue
-            remove_st.append(d)
-        return remove_st, fields
 
+        remove_st = [d for d in data if 'ST' not in d[2]]
+        # for d in data:
+        #     if 'ST' in d[2]:
+        #         continue
+        #     remove_st.append(d)
+        return remove_st, fields
 
     def scrape_feature_list(self):
         '''
         Could be an absolutely fragile function, no exception handling at all.
         '''
-        stock_list_url = 'http://baostock.com/baostock/index.php/公式与数据格式说明'
-
-        r = requests.get(url=stock_list_url, headers={'User-Agent': UA})
+        r = requests.get(
+            url='http://baostock.com/baostock/index.php/公式与数据格式说明',
+            headers={'User-Agent': UA}
+        )
         soup = BeautifulSoup(r.text, 'html.parser')
         tables = soup.select('table.wikitable')
 
         code_pool = []
         features = []
-        for t in tables[:3]: # only first 4 tables are useful
+        for t in tables[:3]:  # only first 4 tables are useful
             bullets = t.select('tr')
-            for b in bullets[1:]: # first one row is table title
+            for b in bullets[1:]:  # first one row is table title
                 content = [i.get_text().strip() for i in b.select('td')]
                 if content[0] in code_pool:
                     continue
                 else:
                     code_pool.append(content[0])
-                    features.append(content) # kind of stupid way but it works
+                    features.append(content)  # kind of stupid way but it works
 
         return features
 
@@ -108,7 +103,6 @@ class stockScraper():
 
         # return fetched, fields, features, cfields
 
-
     def scrape_feature_data(self, feature_codes, start_date, end_date):
         dates, _ = self.scrape_k_data({
             'code': 'sh.000001',
@@ -117,7 +111,7 @@ class stockScraper():
             'end_date': end_date,
             'frequency': 'd',
             'adjustflag': '1'
-            }) # get valid dates first
+        })  # get valid dates first
 
         store = {date[0]: [] for date in dates}
         for idx, code in enumerate(feature_codes):
@@ -148,7 +142,7 @@ class stockScraper():
 
 
 class liveStockScraper():
-    def _sh_formatter(self, before, cat = 'date'):
+    def _sh_formatter(self, before, cat='date'):
         if cat == 'date':
             before = str(before)
             after = '-'.join([before[:4], before[4:6], before[6:]])
@@ -159,8 +153,7 @@ class liveStockScraper():
             after = before
         return after
 
-
-    def _sz_formatter(self, before, cat = 'time'):
+    def _sz_formatter(self, before, cat='time'):
         if cat == 'time':
             after = before.split(' ')[-1][:5]
         elif cat == 'date':
@@ -169,8 +162,7 @@ class liveStockScraper():
             after = before
         return after
 
-
-    def sh_live_k_data(self, code, data_type = 'min'):
+    def sh_live_k_data(self, code, data_type='min'):
         '''
         http://www.sse.com.cn/market/price/trends/index.shtml?code=SH000004
         '''
@@ -178,7 +170,7 @@ class liveStockScraper():
             'User-Agent': UA,
             'Host': 'yunhq.sse.com.cn:32041',
             'Referer': 'http://www.sse.com.cn/'
-            }
+        }
 
         if data_type == 'min':
             base_url = 'http://yunhq.sse.com.cn:32041//v1/sh1/line/{}'.format(code.split('.')[-1])
@@ -187,24 +179,24 @@ class liveStockScraper():
                 'end': -1,
                 'select': 'time,price,volume',
                 '_': round(get_now()*1000)
-                }
-        else: # data_type == 'day':
+            }
+        else:  # data_type == 'day':
             base_url = 'http://yunhq.sse.com.cn:32041//v1/sh1/dayk/{}'.format(code.split('.')[-1])
             params = {
                 'begin': -3,
                 'end': -1,
                 'select': 'date,open,high,low,close,volume',
                 '_': round(get_now()*1000)
-                }
+            }
 
         r = requests.get(
             base_url,
-            params = params,
-            headers = headers
-            )
+            params=params,
+            headers=headers
+        )
 
         # date, _time, _open, high, low, _close = each_min
-        
+
         result = []
         if r.status_code == 200:
             response = r.json()
@@ -215,13 +207,12 @@ class liveStockScraper():
                 response['highest'],
                 response['lowest'],
                 response['line'][-1][1],
-                ]
+            ]
         else:
             live_data = []
 
         result.append(live_data)
         return result
-
 
     def sz_live_k_data(self, code):
         '''
@@ -231,21 +222,21 @@ class liveStockScraper():
             'User-Agent': UA,
             'Host': 'www.szse.cn',
             'Referer': 'http://www.szse.cn/market/trend/index.html?code={}'.format(code.split('.')[-1])
-            }
+        }
         base_url = 'http://www.szse.cn/api/market/ssjjhq/getTimeData'
         params = {
             'random': random.random(),
             'marketId': 1,
             'code': code.split('.')[-1]
-            }
+        }
         r = requests.get(
             base_url,
-            params = params,
-            headers = headers
-            )
+            params=params,
+            headers=headers
+        )
 
-        #response['data']['picupdata'][0] structure:
-        #time, close, avg, pctChg, 涨跌幅？,share, volume
+        # response['data']['picupdata'][0] structure:
+        # time, close, avg, pctChg, 涨跌幅？,share, volume
         # date, _time, _open, high, low, _close = each_min
         result = []
         if r.status_code == 200:
@@ -253,11 +244,11 @@ class liveStockScraper():
             live_data = [
                 self._sz_formatter(response['data']['marketTime'], cat='date'),
                 self._sz_formatter(response['data']['marketTime'], cat='time'),
-                float(response['data']['picupdata'][0][1]), #response['data']['open'],
+                float(response['data']['picupdata'][0][1]),  # response['data']['open'],
                 float(response['data']['high']),
                 float(response['data']['low']),
                 float(response['data']['picupdata'][-1][1]),
-                ]
+            ]
         else:
             live_data = []
 

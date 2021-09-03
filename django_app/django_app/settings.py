@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
+from config.static_vars import DEBUG
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -24,12 +25,7 @@ SECRET_KEY = '@c)6-e194mm9oozz@rh5u8qf3p^oudm-82+9nhkgg8%0$+%p_!'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = True
-import platform
-os_type = platform.system()
-if os_type == 'Linux':
-    DEBUG = False
-else:
-    DEBUG = True
+
 
 ALLOWED_HOSTS = ['*']
 
