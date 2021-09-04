@@ -20,7 +20,6 @@ her_operator = stockDatabaseOperator(STOCK_HISTORY_PATH)
 her_scraper = stockScraper()
 her_live_scraper = liveStockScraper()
 
-
 def first_run_check():
     if IS_FIRST_RUN:
         print('it\'s the first run on this instance, initiating basic tables...')
@@ -35,11 +34,10 @@ def first_run_check():
     else:
         print('wow, hello again!')
 
-first_run_check()
 exe_boy = ThreadPoolExecutor(1)  # TODO: how this boy is played?
 scheduler = BackgroundScheduler()
 scheduler.start()
-
+first_run_check()
 
 class codeNameMapping(APIView):
     def post(self, request):
@@ -94,13 +92,13 @@ class codeLiveFeaturesSender(APIView):
 class globalFeaturesUpdater(APIView):
     def global_update(self, min_start_date, day_start_date, feature_start_date):
         her_scraper._relogin()
-        all_codes = her_operator.get_all_codes()  # 500 or 4000 will be decided by static_vars
 
         end_date = get_today_date()
         min_start_date = get_delta_date(min_start_date, 1)
         day_start_date = get_delta_date(day_start_date, 1)
         feature_start_date = get_delta_date(feature_start_date, 1)
 
+        all_codes = her_operator.get_all_codes()  # 500 or 4000 will be decided by static_vars
         for idx, code in enumerate(all_codes):
             if idx % 100 == 0:
                 print('update process {}/{}'.format(idx + 1, len(all_codes)))
@@ -123,7 +121,7 @@ class globalFeaturesUpdater(APIView):
             except:
                 print(code, '\n')
                 traceback.print_exc()  # for now it's all about no data
-                
+
             her_operator.off(conn)
 
         feature_codes = her_operator.get_feature_codes()

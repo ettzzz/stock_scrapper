@@ -11,7 +11,6 @@ from utils.datetime_tools import get_delta_date
 索引不应该使用在频繁操作的列上。 not hit
 '''
 
-
 class stockDatabaseOperator(sqliteBaseOperator):
     def __init__(self, sql_dbfile_path):
         super().__init__(sql_dbfile_path)
@@ -58,7 +57,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 'volume': ['INTEGER'],
                 'isST': ['INTEGER'],
                 'tradestatus': ['INTEGER'],
-                'turn': ['REAL', 'DEFAULT 0'],
+                'turn': ['REAL'], #  'DEFAULT 0', 'NOT NULL' not working as '' is not NULL
                 'pctChg': ['REAL'],
                 'peTTM': ['REAL'],  # 滚动市盈率
                 'psTTM': ['REAL'],  # 滚动市销率 # will be deprecated soon
@@ -103,7 +102,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
             )
         self.off(conn)
 
-    def _update_stock_list(self, 
+    def _update_stock_list(self,
                            code_list,
                            feature_list,
                            whole_code_list,
@@ -195,7 +194,10 @@ class stockDatabaseOperator(sqliteBaseOperator):
         conn.executemany(
             self.insert_batch_sql_command(table_name, fields), fetched
         )
-        
+        conn.execute(
+            "UPDATE '{}' SET turn=0 WHERE turn='';".format(table_name)
+        ) # ugly patch: in case tradestatus=0 then turn is null
+
     def insert_feature_data(self, feature_codes, stacked):
         table_name = self.init_table_names['global']
         global_field_dict = {'date': ['DATE']}
@@ -284,7 +286,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
             conn=conn
         )
         self.off(conn)
-        
+
         date_seq = [i[0] for i in day_data]
         date_dict = {i[0]: i for i in day_data}
         all_feature_dict = {i[0]: i for i in all_feature_data}
