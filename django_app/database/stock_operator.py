@@ -249,7 +249,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
     def get_cn_name(self, codes):
         name_data = self.fetch_by_command(
             "SELECT code,code_name FROM '{}' WHERE code IN ({});".format(
-                self.init_table_names['field'],
+                self.init_table_names['whole_field'],
                 str(codes)[1:-1]  # interesting bastard
             )
         )
