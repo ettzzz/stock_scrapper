@@ -12,7 +12,7 @@ from scraper import stockScraper, liveStockScraper
 from database import stockDatabaseOperator
 from config.static_vars import STOCK_HISTORY_PATH
 from utils.datetime_tools import get_delta_date, get_today_date
-# from utils.internet_tools import call_bot_dispatch
+from gibber import gabber
 
 IS_FIRST_RUN = not os.path.exists(STOCK_HISTORY_PATH)
 
@@ -22,7 +22,7 @@ her_live_scraper = liveStockScraper()
 
 def first_run_check():
     if IS_FIRST_RUN:
-        print('it\'s the first run on this instance, initiating basic tables...')
+        gabber.info('it\'s the first run on this instance, initiating basic tables...')
         today = get_today_date()
         her_operator._init_basic_tables()
         her_scraper._relogin()
@@ -30,9 +30,9 @@ def first_run_check():
         all4000, all_fields = her_scraper.scrape_whole_pool_data(update_date=today)
         global_features = her_scraper.scrape_feature_list()
         her_operator._update_stock_list(zz500, global_features, all4000)
-        print('initiating basic tables finished!, please call /api_v1/update')
+        gabber.info('initiating basic tables finished!, please call /api_v1/update')
     else:
-        print('wow, hello again!')
+        gabber.info('wow, hello again!')
 
 exe_boy = ThreadPoolExecutor(1)  # TODO: how this boy is played?
 scheduler = BackgroundScheduler()
@@ -101,7 +101,7 @@ class globalFeaturesUpdater(APIView):
         all_codes = her_operator.get_all_codes()  # 500 or 4000 will be decided by static_vars
         for idx, code in enumerate(all_codes):
             if idx % 100 == 0:
-                print('update process {}/{}'.format(idx + 1, len(all_codes)))
+                gabber.debug('update process {}/{}'.format(idx + 1, len(all_codes)))
             code = code[0]
             conn = her_operator.on()
             try:
@@ -119,8 +119,7 @@ class globalFeaturesUpdater(APIView):
                 fetched, fields = her_scraper.scrape_k_data(config_day)
                 her_operator.insert_day_data(code, fetched, fields, conn)
             except:
-                print(code, '\n')
-                traceback.print_exc()  # for now it's all about no data
+                gabber.error('update error of {}: {}'.format(code, traceback.format_exc()))
 
             her_operator.off(conn)
 
@@ -128,7 +127,7 @@ class globalFeaturesUpdater(APIView):
         stacked = her_scraper.scrape_feature_data(feature_codes, feature_start_date, end_date)
         her_operator.insert_feature_data(feature_codes, stacked)
 
-        print('Update done!')
+        gabber.info('Update done on {}'.format(end_date))
 
     def post(self, request):
         min_start_date = her_operator.get_latest_date(_type='min30')
