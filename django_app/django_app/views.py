@@ -20,10 +20,11 @@ her_operator = stockDatabaseOperator(STOCK_HISTORY_PATH)
 her_scraper = stockScraper()
 her_live_scraper = liveStockScraper()
 
+
 def first_run_check():
+    today = get_today_date()
     if IS_FIRST_RUN:
         gabber.info('it\'s the first run on this instance, initiating basic tables...')
-        today = get_today_date()
         her_operator._init_basic_tables()
         her_scraper._relogin()
         zz500, zz_fields = her_scraper.scrape_pool_data(update_date=today)
@@ -32,12 +33,14 @@ def first_run_check():
         her_operator._update_stock_list(zz500, global_features, all4000)
         gabber.info('initiating basic tables finished!, please call /api_v1/update')
     else:
-        gabber.info('wow, hello again!')
+        gabber.info('wow, hello again on {}'.format(today))
+
 
 exe_boy = ThreadPoolExecutor(1)  # TODO: how this boy is played?
 scheduler = BackgroundScheduler()
 scheduler.start()
 first_run_check()
+
 
 class codeNameMapping(APIView):
     def post(self, request):
@@ -152,5 +155,5 @@ class globalFeaturesUpdater(APIView):
                 min_start_date,
                 day_start_date,
                 feature_start_date
-                )
+            )
         })
