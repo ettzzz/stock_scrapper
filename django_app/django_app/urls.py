@@ -22,6 +22,7 @@ from . import views
 
 api_v1 = [
     url('fetch', views.codeFeaturesSender.as_view(), name='fetch'),
+    url('train_new', views.newCodeFeaturesSender.as_view(), name='train_new'),
     url('live', views.codeLiveFeaturesSender.as_view(), name='live'),
     url('update', views.globalFeaturesUpdater.as_view(), name='update'),
     url('all_codes', views.allCodesSender.as_view(), name='all_codes'),

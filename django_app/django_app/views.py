@@ -71,6 +71,14 @@ class codeFeaturesSender(APIView):
         features = her_operator.get_train_data(code, start_date, end_date)
         return Response(features)
 
+class newCodeFeaturesSender(APIView):
+    def post(self, request):
+        code = request.data['code']
+        start_date = request.data['start_date']
+        end_date = request.data['end_date']
+
+        features = her_operator.get_new_train_data(code, start_date, end_date)
+        return Response(features)
 
 class codeLiveFeaturesSender(APIView):
     def post(self, request):
