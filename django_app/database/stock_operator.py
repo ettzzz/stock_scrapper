@@ -256,6 +256,72 @@ class stockDatabaseOperator(sqliteBaseOperator):
         return dict(name_data)
 
 
+    # def get_train_data(self, code, start_date, end_date):
+    #     min30_table = self._table_dispatch(code, _type='min30')
+    #     day_table = self._table_dispatch(code, _type='day')
+    #     feature_table = self.init_table_names['global']
+    #     if not self.table_info(min30_table):  # this code is not stored in db
+    #         return []
+    #
+    #     conn = self.on()
+    #     min30_data = self.fetch_by_command(
+    #         "SELECT {} FROM '{}' \
+    #         WHERE code='{}' AND date BETWEEN '{}' AND '{}';".format(
+    #             ','.join(self.minute_train_cols), min30_table,
+    #              code, start_date, end_date),
+    #         conn=conn
+    #     )
+    #     day_data = self.fetch_by_command(
+    #         "SELECT {} FROM '{}' \
+    #         WHERE code='{}' AND date BETWEEN '{}' AND '{}';".format(
+    #             ','.join(self.day_train_cols), day_table,
+    #             code, start_date, end_date),
+    #         conn=conn
+    #     )
+    #     all_feature_data = self.fetch_by_command(
+    #         "SELECT {} FROM '{}'\
+    #         WHERE date BETWEEN '{}' AND '{}';".format(
+    #             ','.join(self.feature_train_cols), feature_table,
+    #             start_date, end_date),
+    #         conn=conn
+    #     )
+    #     self.off(conn)
+    #
+    #     date_seq = [i[0] for i in day_data]
+    #     date_dict = {i[0]: i for i in day_data}
+    #     all_feature_dict = {i[0]: i for i in all_feature_data}
+    #     # make sure date is the first element for these 3 lines above
+    #
+    #     result = []
+    #     for each_min in min30_data:
+    #         date, _time, volume, _open, high, low, _close = each_min  # should be correct
+    #         date_index = date_seq.index(date)
+    #
+    #         if date_index < 3:
+    #             continue
+    #         if volume == 0:  # where tradeStatus is 0
+    #             continue
+    #         else:
+    #             target_dates = date_seq[date_index - 3: date_index]
+    #             features = [round((_close - _open)/_open*100, 6), round((high - low)/low*100, 6)]  # 2
+    #             for target_date in target_dates:
+    #                 features += list(date_dict[target_date][1:-5])  # 3*6 = 18 in total
+    #                 features += list(all_feature_dict[target_date][1:])  # 3*12 = 36 in total
+    #                 d_open, d_high, d_low, d_close, d_preclose = date_dict[target_date][-5:]
+    #                 features += [round((d_close - d_open)/d_open*100, 6),
+    #                              round((d_high-d_low)/d_low*100, 6),
+    #                              round((d_close-d_preclose)/d_preclose*100, 6)]  # 3 * 3
+    #
+    #             result.append({
+    #                 'code': code,
+    #                 'timestamp': date + ' ' + _time,
+    #                 'close': _close,
+    #                 'features': features
+    #             })
+    #
+    #     return result
+
+
     def get_train_data(self, code, start_date, end_date):
         min30_table = self._table_dispatch(code, _type='min30')
         day_table = self._table_dispatch(code, _type='day')
@@ -271,17 +337,21 @@ class stockDatabaseOperator(sqliteBaseOperator):
                  code, start_date, end_date),
             conn=conn
         )
+        new_day_train_cols = ['date', 'turn', 'pctChg', 'peTTM', 'open', 'high', 'low', 'close', 'preclose']
+
         day_data = self.fetch_by_command(
             "SELECT {} FROM '{}' \
             WHERE code='{}' AND date BETWEEN '{}' AND '{}';".format(
-                ','.join(self.day_train_cols), day_table,
+                ','.join(new_day_train_cols), day_table,
                 code, start_date, end_date),
             conn=conn
         )
+
+        new_feature_train_cols = ['sh.000001', 'sh.000003', 'sh.000905']
         all_feature_data = self.fetch_by_command(
             "SELECT {} FROM '{}'\
             WHERE date BETWEEN '{}' AND '{}';".format(
-                ','.join(self.feature_train_cols), feature_table,
+                ','.join(new)feature_train_cols), feature_table,
                 start_date, end_date),
             conn=conn
         )
