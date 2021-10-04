@@ -21,17 +21,20 @@ from . import views
 
 
 api_v1 = [
-    url('fetch', views.codeFeaturesSender.as_view(), name='fetch'),
-    url('train_new', views.newCodeFeaturesSender.as_view(), name='train_new'),
-    url('live', views.codeLiveFeaturesSender.as_view(), name='live'),
-    url('update', views.globalFeaturesUpdater.as_view(), name='update'),
-    url('all_codes', views.allCodesSender.as_view(), name='all_codes'),
-    url('all_training_codes', views.allTrainingCodesSender.as_view(), name='all_training_codes'),
-    url('code_name', views.codeNameMapping.as_view(), name='code_name'),
+    url("fetch", views.codeFeaturesSender.as_view(), name="fetch"),
+    url("live", views.codeLiveFeaturesSender.as_view(), name="live"),
+    url("update", views.globalFeaturesUpdater.as_view(), name="update"),
+    url("all_codes", views.allCodesSender.as_view(), name="all_codes"),
+    url(
+        "all_training_codes",
+        views.allTrainingCodesSender.as_view(),
+        name="all_training_codes",
+    ),
+    url("code_name", views.codeNameMapping.as_view(), name="code_name"),
 ]
 
 
 urlpatterns = [
     # path('admin/', admin.site.urls),
-    path('api_v1/', include(api_v1)),
+    path("api_v1/", include(api_v1)),
 ]
