@@ -137,15 +137,20 @@ class globalFeaturesUpdater(APIView):
             feature_codes, feature_start_date, end_date
         )
         her_operator.insert_feature_data(feature_codes, stacked)
-
         gabber.info("Update done on {}".format(end_date))
 
     def post(self, request):
+        is_plan = request.data["is_plan"]
+        if is_plan is True:
+            tomorrow = get_delta_date(get_today_date(), 1)
+            when_to_run = "{} 04:01:00".format(tomorrow)
+        else:
+            when_to_run = ""
+
         min_start_date = her_operator.get_latest_date(_type="min30")
         day_start_date = her_operator.get_latest_date(_type="day")
         feature_start_date = her_operator.get_latest_date(_type="whatever")
 
-        tomorrow = get_delta_date(get_today_date(), 1)
         scheduler.add_job(
             func=self.global_update,
             kwargs={
@@ -154,7 +159,7 @@ class globalFeaturesUpdater(APIView):
                 "feature_start_date": feature_start_date,
             },
             trigger="date",
-            run_date="{} 04:01:00".format(tomorrow),
+            run_date=when_to_run,
         )
         return Response(
             {
