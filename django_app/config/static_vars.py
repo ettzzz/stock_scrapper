@@ -14,14 +14,7 @@ else:
     DEBUG = True
 
 # project exclusive
-# DAY_ZERO = "2019-01-01"
-DAY_ZERO = "2021-01-01"
-
-IS_STOCK_WHOLE = True
-# if IS_STOCK_WHOLE:
-#     STOCK_HISTORY_PATH = os.path.join(ROOT, "trade_history_whole.db")
-# else:
-#     STOCK_HISTORY_PATH = os.path.join(ROOT, "trade_history_zz500.db")
+DAY_ZERO = "2019-01-01"
 
 STOCK_HISTORY_PATH = os.path.join(ROOT, "trade_history.db")
 
@@ -30,8 +23,7 @@ STOCK_HISTORY_PATH = os.path.join(ROOT, "trade_history.db")
 #     'sz.399910', 'sz.399911', 'sz.399912', 'sz.399913',
 #     'sz.399914', 'sz.399915', 'sz.399916', 'sz.399917'
 # ] # tobe deprecated soon
-SELECTED_CODES = ["sh_000001", "sh_000003", "sh_000905"]
-selected_features = list(map(lambda x: x.replace(".", "_"), SELECTED_CODES))
+SELECTED_CODES = ["sh.000001", "sh.000003", "sh.000905"]
 
 # web service
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0"

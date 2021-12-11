@@ -42,15 +42,6 @@ class stockScraper:
         data, fields = self.call_baostock(raw)
         return data, fields
 
-    # def scrape_pool_data(self, update_date=DAY_ZERO):
-    #     config = {"date": update_date}
-    #     raw = bs.query_zz500_stocks(**config)
-    #     if raw.error_msg == "网络接收错误。":
-    #         bs.login()
-    #         raw = bs.query_zz500_stocks(**config)
-    #     data, fields = self.call_baostock(raw)
-    #     return data, fields
-
     def scrape_whole_pool_data(self, update_date=DAY_ZERO, remove_st=False):
         config = {"date": update_date}
 
@@ -160,7 +151,6 @@ class stockScraper:
 
         stacks = []
         for date, indices in store.items():
-            # stacks.append([date] + indices)
             stacks.append([date, ",".join(feature_codes_str), ",".join(indices)])
 
         return stacks
