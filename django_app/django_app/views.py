@@ -10,12 +10,11 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from scraper import stockScraper, liveStockScraper
 from database import stockDatabaseOperator
-from config.static_vars import STOCK_HISTORY_PATH
+from config.static_vars import STOCK_HISTORY_PATH, DEBUG
 from utils.datetime_tools import get_delta_date, get_today_date
 from gibber import gabber
 
 IS_FIRST_RUN = not os.path.exists(STOCK_HISTORY_PATH)
-
 her_operator = stockDatabaseOperator(STOCK_HISTORY_PATH)
 her_scraper = stockScraper()
 her_live_scraper = liveStockScraper()
@@ -23,23 +22,28 @@ her_live_scraper = liveStockScraper()
 
 def first_run_check():
     today = get_today_date()
+    if DEBUG:
+        gabber.info("It's on DEBUG mode!")
+
     if IS_FIRST_RUN:
         gabber.info("it's the first run on this instance, initiating basic tables...")
         her_operator._init_basic_tables()
-        her_scraper._relogin()
-        zz500, zz_fields = her_scraper.scrape_pool_data(update_date=today)
+
         all4000, all_fields = her_scraper.scrape_whole_pool_data(update_date=today)
+        her_operator.update_stock_list(all4000)
+
         global_features = her_scraper.scrape_feature_list()
-        her_operator._update_stock_list(zz500, global_features, all4000)
+        her_operator.update_feature_list(global_features)
+
         gabber.info("initiating basic tables finished!, please call /api_v1/update")
     else:
         gabber.info("wow, hello again on {}".format(today))
 
 
+first_run_check()
 exe_boy = ThreadPoolExecutor(1)  # TODO: how this boy is played?
 scheduler = BackgroundScheduler()
 scheduler.start()
-first_run_check()
 
 
 class codeNameMapping(APIView):
@@ -93,75 +97,93 @@ class codeLiveFeaturesSender(APIView):
 
 
 class globalFeaturesUpdater(APIView):
-    def global_update(self, min_start_date, day_start_date, feature_start_date):
+    def global_update(self):
         her_scraper._relogin()
+        end_date = get_delta_date(get_today_date(), -1)
+        # it should be yesterday, coz this func is scheduled on next day 0400
 
-        end_date = get_today_date()
-        min_start_date = get_delta_date(min_start_date, 1)
-        day_start_date = get_delta_date(day_start_date, 1)
-        feature_start_date = get_delta_date(feature_start_date, 1)
+        all4000, all_fields = her_scraper.scrape_whole_pool_data(update_date=end_date)
+        if all4000[0][0] == end_date:  # only update when all4000 is updated
+            her_operator.update_stock_list(all4000)
+        all_codes = her_operator.get_all_codes()
 
-        all_codes = (
-            her_operator.get_all_codes()
-        )  # 500 or 4000 will be decided by static_vars
+        time_ticket = dict()
         for idx, code in enumerate(all_codes):
-            if idx % 100 == 0:
-                gabber.debug("update process {}/{}".format(idx + 1, len(all_codes)))
+            gabber.debug(f"building time_ticket {idx}/{len(all_codes)}")
             code = code[0]
-            conn = her_operator.on()
+            time_ticket[code] = {
+                "min30": {
+                    "start_date": her_operator.get_latest_date(
+                        _type="min30", code=code
+                    ),
+                    "end_date": end_date,
+                },
+                "day": {
+                    "start_date": her_operator.get_latest_date(_type="day", code=code),
+                    "end_date": end_date,
+                },
+            }
+
+        conn = her_operator.on()
+        commit_count = 0
+        empty = list()
+        for code, meta in time_ticket.items():
             try:
                 config_min = her_operator.generate_scrape_config(
-                    code, min_start_date, end_date, "min30"
+                    code,
+                    meta["min30"]["start_date"],
+                    meta["min30"]["end_date"],
+                    "min30",
                 )
                 fetched, fields = her_scraper.scrape_k_data(config_min)
                 if len(fetched) == 0:
-                    her_operator.off(conn)
-                    continue  # so when there is no min30, day data will not be updated either
-                    # TODO: think again whether the sequence could be switched
+                    gabber.debug(f"{code} is empty on {end_date}!")
+                    empty.append(code)
+                    continue  # so when there is no min30, day data will not be updated neither
                 her_operator.insert_min30_data(code, fetched, fields, conn)
 
                 config_day = her_operator.generate_scrape_config(
-                    code, day_start_date, end_date, "day"
+                    code,
+                    meta["day"]["start_date"],
+                    meta["day"]["end_date"],
+                    "day",
                 )
                 fetched, fields = her_scraper.scrape_k_data(config_day)
                 her_operator.insert_day_data(code, fetched, fields, conn)
+                commit_count += 2
+
+                if commit_count > 200:
+                    her_operator.off(conn)
+                    conn = her_operator.on()
+                    commit_count = 0
+                    gabber.debug("commit hohey!")
+
             except:
                 gabber.error(
                     "update error of {}: {}".format(code, traceback.format_exc())
                 )
 
+        if commit_count > 0:
             her_operator.off(conn)
+            gabber.debug("final commit hohey!")
 
         feature_codes = her_operator.get_feature_codes()
+        feature_start_date = her_operator.get_latest_date(_type="whatever")
         stacked = her_scraper.scrape_feature_data(
             feature_codes, feature_start_date, end_date
-        )
+        )  # now it's [date, code, feature]
         her_operator.insert_feature_data(feature_codes, stacked)
 
-        gabber.info("Update done on {}".format(end_date))
+        gabber.info("Update done for {}, empty length {}".format(end_date, len(empty)))
 
     def post(self, request):
-        min_start_date = her_operator.get_latest_date(_type="min30")
-        day_start_date = her_operator.get_latest_date(_type="day")
-        feature_start_date = her_operator.get_latest_date(_type="whatever")
-
         tomorrow = get_delta_date(get_today_date(), 1)
+        _run_date = "{} 04:01:00".format(tomorrow)
         scheduler.add_job(
             func=self.global_update,
-            kwargs={
-                "min_start_date": min_start_date,
-                "day_start_date": day_start_date,
-                "feature_start_date": feature_start_date,
-            },
             trigger="date",
-            run_date="{} 04:01:00".format(tomorrow),
+            run_date=_run_date,
         )
         return Response(
-            {
-                "msg": "Update started, min start date from {},"
-                "day start date from {},"
-                "feature start date from {}.".format(
-                    min_start_date, day_start_date, feature_start_date
-                )
-            }
+            {"msg": "Update will be started tomorrow ({}).".format(_run_date)}
         )

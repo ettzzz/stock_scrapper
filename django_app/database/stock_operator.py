@@ -15,16 +15,15 @@ class stockDatabaseOperator(sqliteBaseOperator):
     def __init__(self, sql_dbfile_path):
         super().__init__(sql_dbfile_path)
         self.init_table_names = {
-            "field": "all_zz500_codes",
             "whole_field": "all_codes",
             "feature": "all_feature_codes",
             "global": "all_feature_data",
         }
         self.stock_fields = {
-            "field": {
-                "updateDate": ["DATE", "NOT NULL"],
-                "code": ["TEXT", "NOT NULL"],
-                "code_name": ["TEXT"],
+            "global": {
+                "date": ["DATE", "NOT NULL"],
+                "code": ["TEXT"],
+                "feature": ["TEXT"],
             },
             "whole_field": {
                 "updateDate": ["DATE", "NOT NULL"],
@@ -32,6 +31,9 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 "code_name": ["TEXT"],
                 "industry": ["TEXT"],
                 "industryClassification": ["TEXT"],
+                "is_zz500": ["INTEGER"],
+                "is_hs300": ["INTEGER"],
+                "is_sz50": ["INTEGER"],
             },
             "feature": {
                 "code": ["TEXT", "NOT NULL"],
@@ -101,6 +103,8 @@ class stockDatabaseOperator(sqliteBaseOperator):
             list(self.init_table_names.values()) if not table_names else table_names
         )
         for t in table_names:
+            if not self.table_info(t):
+                continue
             self.delete_table(t)
 
     def _table_dispatch(self, code, _type="min30"):
@@ -117,7 +121,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
 
     def _init_basic_tables(self):
         conn = self.on()
-        for table in ["field", "feature", "whole_field"]:
+        for table in self.init_table_names:
             conn.execute(
                 self.create_table_sql_command(
                     self.init_table_names[table], self.stock_fields[table]
@@ -125,23 +129,54 @@ class stockDatabaseOperator(sqliteBaseOperator):
             )
         self.off(conn)
 
-    def _update_stock_list(
-        self,
-        code_list,
-        feature_list,
-        whole_code_list,
-        purge=False,
-    ):
-        if purge:
-            self.purge_tables_with_caution()
-        conn = self.on()
-        code_list_fields = list(self.stock_fields["field"].keys())
-        conn.executemany(
-            self.insert_batch_sql_command(
-                self.init_table_names["field"], code_list_fields
-            ),
-            code_list,
+    # def _update_stock_list(
+    #     self,
+    #     code_list,
+    #     feature_list,
+    #     whole_code_list,
+    #     purge=False,
+    # ):
+    #     if purge:
+    #         self.purge_tables_with_caution()
+
+    #     conn = self.on()
+    #     code_list_fields = list(self.stock_fields["field"].keys())
+    #     conn.executemany(
+    #         self.insert_batch_sql_command(
+    #             self.init_table_names["field"], code_list_fields
+    #         ),
+    #         code_list,
+    #     )
+    #     whole_code_list_fields = list(self.stock_fields["whole_field"].keys())
+    #     conn.executemany(
+    #         self.insert_batch_sql_command(
+    #             self.init_table_names["whole_field"], whole_code_list_fields
+    #         ),
+    #         whole_code_list,
+    #     )
+    #     feature_list_fields = list(self.stock_fields["feature"].keys())
+    #     conn.executemany(
+    #         self.insert_batch_sql_command(
+    #             self.init_table_names["feature"], feature_list_fields
+    #         ),
+    #         feature_list,
+    #     )
+    #     self.off(conn)
+    #     """
+    #     # from here it's updating train-related data:
+    #     feature_codes = his_operator.get_feature_codes() # if len(feature_codes) = 0 then it's fresh new
+    #     start_date = '2019-01-01'
+    #     end_date = '2019-01-31'
+    #     stacks = his_scraper.scrape_feature_data(feature_codes, start_date, end_date)
+    #     his_operator.insert_feature_data(feature_codes, stacks)
+    #     """
+
+    def update_stock_list(self, whole_code_list):
+        self.purge_tables_with_caution(
+            table_names=[self.init_table_names["whole_field"]]
         )
+
+        conn = self.on()
         whole_code_list_fields = list(self.stock_fields["whole_field"].keys())
         conn.executemany(
             self.insert_batch_sql_command(
@@ -149,6 +184,12 @@ class stockDatabaseOperator(sqliteBaseOperator):
             ),
             whole_code_list,
         )
+        self.off(conn)
+
+    def update_feature_list(self, feature_list):
+        self.purge_tables_with_caution(table_names=self.init_table_names["feature"])
+
+        conn = self.on()
         feature_list_fields = list(self.stock_fields["feature"].keys())
         conn.executemany(
             self.insert_batch_sql_command(
@@ -157,14 +198,6 @@ class stockDatabaseOperator(sqliteBaseOperator):
             feature_list,
         )
         self.off(conn)
-        """
-        # from here it's updating train-related data:
-        feature_codes = his_operator.get_feature_codes() # if len(feature_codes) = 0 then it's fresh new
-        start_date = '2019-01-01'
-        end_date = '2019-01-31'
-        stacks = his_scraper.scrape_feature_data(feature_codes, start_date, end_date)
-        his_operator.insert_feature_data(feature_codes, stacks)
-        """
 
     def _baostock_timestamper(self, single_fetched):
         mdts = single_fetched[2][:14]  # just for min_fetched, index=2 is timestamp
@@ -200,33 +233,42 @@ class stockDatabaseOperator(sqliteBaseOperator):
         _type = "min30"
         fetched = list(map(self._baostock_timestamper, fetched))
         table_name = self._table_dispatch(code, _type)
-        conn.execute(
-            self.create_table_sql_command(table_name, self.stock_fields["minute"])
-        )
+        if not self.table_info(table_name):
+            conn.execute(
+                self.create_table_sql_command(table_name, self.stock_fields["minute"])
+            )
         conn.executemany(self.insert_batch_sql_command(table_name, fields), fetched)
 
     def insert_day_data(self, code, fetched, fields, conn):
         _type = "day"
         table_name = self._table_dispatch(code, _type)
-        conn.execute(
-            self.create_table_sql_command(table_name, self.stock_fields["day"])
-        )
+        if not self.table_info(table_name):
+            conn.execute(
+                self.create_table_sql_command(table_name, self.stock_fields["day"])
+            )
         conn.executemany(self.insert_batch_sql_command(table_name, fields), fetched)
         conn.execute(
             "UPDATE '{}' SET turn=0 WHERE turn='';".format(table_name)
         )  # ugly patch: in case tradestatus=0 then turn is null
 
     def insert_feature_data(self, feature_codes, stacked):
+        # table_name = self.init_table_names["global"]
+        # global_field_dict = {"date": ["DATE"]}
+        # fields = ["date"]
+        # for code in feature_codes:
+        #     code = code[0]
+        #     global_field_dict[code.replace(".", "_")] = ["REAL"]
+        #     fields.append(code.replace(".", "_"))
+
+        # conn = self.on()
+        # conn.execute(self.create_table_sql_command(table_name, global_field_dict))
+        # conn.executemany(self.insert_batch_sql_command(table_name, fields), stacked)
+        # self.off(conn)
+
         table_name = self.init_table_names["global"]
-        global_field_dict = {"date": ["DATE"]}
-        fields = ["date"]
-        for code in feature_codes:
-            code = code[0]
-            global_field_dict[code.replace(".", "_")] = ["REAL"]
-            fields.append(code.replace(".", "_"))
+        fields = list(self.stock_fields["global"].keys())
 
         conn = self.on()
-        conn.execute(self.create_table_sql_command(table_name, global_field_dict))
         conn.executemany(self.insert_batch_sql_command(table_name, fields), stacked)
         self.off(conn)
 
@@ -241,24 +283,33 @@ class stockDatabaseOperator(sqliteBaseOperator):
             table_name = self.init_table_names["field"]
         else:
             table_name = self.init_table_names["whole_field"]
-        all_codes = self.fetch_by_command("SELECT code FROM '{}';".format(table_name))
+        all_codes = self.fetch_by_command(
+            "SELECT code FROM '{}';".format(table_name)
+        )
         return all_codes
 
     def get_latest_date(self, _type="min30", code="sh.600006"):
-        try:
-            if _type in ["min30", "day"]:
-                table_name = self._table_dispatch(code, _type)
-            else:
-                table_name = self.init_table_names["global"]
-
+        if _type in ["min30", "day"]:
+            table_name = self._table_dispatch(code, _type)
             latest_date = self.fetch_by_command(
-                "SELECT MAX(date) FROM '{}';".format(table_name)
-            )
-            return latest_date[0][0]  # [('2019-12-31',)]
-        except:
-            return get_delta_date(
-                DAY_ZERO, -1
-            )  # in case that global table is not created
+                "SELECT MAX(date) FROM '{}' WHERE code = '{}';".format(table_name, code)
+            )[0][0]
+        else:
+            table_name = self.init_table_names["global"]
+            latest_date = self.fetch_by_command(
+                "SELECT MAX(date) FROM '{}' ;".format(table_name)
+            )[0][0]
+
+        if not self.table_info(table_name):
+            return get_delta_date(DAY_ZERO, -1)
+            # in case that table is not created
+
+        # [('2019-12-31',)] or [(None,)]
+        if latest_date is None:
+            return get_delta_date(DAY_ZERO, -1)
+            # in case that table is created but is empty of data
+
+        return latest_date
 
     def get_cn_name(self, codes):
         name_data = self.fetch_by_command(
@@ -336,7 +387,8 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 for target_date in target_dates:
                     features += list(date_dict[target_date][1:-5])  # days*6
                     features += list(
-                        all_feature_dict[target_date][1:]
+                        # all_feature_dict[target_date][1:]
+                        map(float, all_feature_dict[target_date][2].split(","))
                     )  # 3*12 = 36 in total
                     d_open, d_high, d_low, d_close, d_preclose = date_dict[target_date][
                         -5:
