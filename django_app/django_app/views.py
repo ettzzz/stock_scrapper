@@ -112,13 +112,15 @@ class globalFeaturesUpdater(APIView):
             code = code[0]
             time_ticket[code] = {
                 "min30": {
-                    "start_date": her_operator.get_latest_date(
-                        _type="min30", code=code
-                    ),
+                    "start_date": get_delta_date(
+                        her_operator.get_latest_date(_type="min30", code=code), 1
+                    ),  # latest_date + 1 incase of duplication
                     "end_date": end_date,
                 },
                 "day": {
-                    "start_date": her_operator.get_latest_date(_type="day", code=code),
+                    "start_date": get_delta_date(
+                        her_operator.get_latest_date(_type="day", code=code), 1
+                    ),
                     "end_date": end_date,
                 },
             }
