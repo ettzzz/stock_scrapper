@@ -14,7 +14,8 @@ else:
     DEBUG = True
 
 # project exclusive
-DAY_ZERO = "2019-01-01"
+# DAY_ZERO = "2019-01-01"
+DAY_ZERO = "2021-01-01"
 
 STOCK_HISTORY_PATH = os.path.join(ROOT, "trade_history.db")
 
