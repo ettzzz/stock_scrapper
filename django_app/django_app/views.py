@@ -169,7 +169,9 @@ class globalFeaturesUpdater(APIView):
             gabber.debug("final commit hohey!")
 
         feature_codes = her_operator.get_feature_codes()
-        feature_start_date = her_operator.get_latest_date(_type="whatever")
+        feature_start_date = get_delta_date(
+            her_operator.get_latest_date(_type="whatever"), 1
+        )
         stacked = her_scraper.scrape_feature_data(
             feature_codes, feature_start_date, end_date
         )  # now it's [date, code, feature]
