@@ -29,13 +29,15 @@ class sqliteBaseOperator:
             result = conn.execute(sql_command).fetchall()
         return result
 
-    def table_info(self, table_name):
-        result = self.fetch_by_command("PRAGMA table_info('{}');".format(table_name))
+    def table_info(self, table_name, conn=None):
+        result = self.fetch_by_command(
+            "PRAGMA table_info('{}');".format(table_name), conn
+        )
         return result
 
-    def get_all_tables(self):
+    def get_all_tables(self, conn=None):
         all_tables = self.fetch_by_command(
-            "SELECT name FROM sqlite_master where type='table';"
+            "SELECT name FROM sqlite_master where type='table';", conn
         )
         return all_tables
 

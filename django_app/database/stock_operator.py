@@ -191,7 +191,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
         _type = "min30"
         fetched = list(map(self._baostock_timestamper, fetched))
         table_name = self._table_dispatch(code, _type)
-        if not self.table_info(table_name):
+        if not self.table_info(table_name, conn):
             conn.execute(
                 self.create_table_sql_command(table_name, self.stock_fields["minute"])
             )
@@ -200,7 +200,7 @@ class stockDatabaseOperator(sqliteBaseOperator):
     def insert_day_data(self, code, fetched, fields, conn):
         _type = "day"
         table_name = self._table_dispatch(code, _type)
-        if not self.table_info(table_name):
+        if not self.table_info(table_name, conn):
             conn.execute(
                 self.create_table_sql_command(table_name, self.stock_fields["day"])
             )
