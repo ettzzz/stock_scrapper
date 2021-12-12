@@ -247,20 +247,19 @@ class stockDatabaseOperator(sqliteBaseOperator):
     def get_latest_date(self, _type="min30", code="sh.600006"):
         if _type in ["min30", "day"]:
             table_name = self._table_dispatch(code, _type)
+            if not self.table_info(table_name):
+                return get_delta_date(DAY_ZERO, -1)
+                # in case that table is not created
             latest_date = self.fetch_by_command(
                 "SELECT MAX(date) FROM '{}' WHERE code = '{}';".format(table_name, code)
             )[0][0]
+            # [('2019-12-31',)] or [(None,)]
         else:
             table_name = self.init_table_names["global"]
             latest_date = self.fetch_by_command(
                 "SELECT MAX(date) FROM '{}' ;".format(table_name)
             )[0][0]
 
-        if not self.table_info(table_name):
-            return get_delta_date(DAY_ZERO, -1)
-            # in case that table is not created
-
-        # [('2019-12-31',)] or [(None,)]
         if latest_date is None:
             return get_delta_date(DAY_ZERO, -1)
             # in case that table is created but is empty of data
