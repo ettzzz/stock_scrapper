@@ -2,6 +2,7 @@
 
 import os
 import traceback
+import datetime
 
 # from concurrent.futures import ThreadPoolExecutor
 
@@ -11,7 +12,7 @@ from rest_framework.response import Response
 from scraper import stockScraper, liveStockScraper
 from database import stockDatabaseOperator
 from config.static_vars import STOCK_HISTORY_PATH, DEBUG
-from utils.datetime_tools import get_delta_date, get_today_date
+from utils.datetime_tools import get_delta_date, get_today_date, get_now
 from schedule_maker.bg_schedule import scheduler
 from gibber import gabber
 
@@ -179,14 +180,21 @@ class globalFeaturesUpdater(APIView):
 
         gabber.info("Update done for {}, empty length {}".format(end_date, len(empty)))
 
+    def testprint(self):
+        print("hey")
+
     def post(self, request):
-        tomorrow = get_delta_date(get_today_date(), 1)
-        _run_date = "{} 04:01:00".format(tomorrow)
+        is_plan = request.data["is_plan"]
+        if is_plan in [1, "1"]:
+            _run_date = datetime.datetime.fromtimestamp(round(get_now() + 3))
+        else:
+            tomorrow = get_delta_date(get_today_date(), 1)
+            _run_date = "{} 04:01:00".format(tomorrow)
+
         scheduler.add_job(
             func=self.global_update,
+            # func=self.testprint,
             trigger="date",
             run_date=_run_date,
         )
-        return Response(
-            {"msg": "Update will be started tomorrow ({}).".format(_run_date)}
-        )
+        return Response({"msg": "Update will be started ({}).".format(_run_date)})

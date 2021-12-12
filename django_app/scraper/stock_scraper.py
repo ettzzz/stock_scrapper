@@ -23,6 +23,15 @@ class stockScraper:
         else:
             return data_list, baostock_raw.fields
 
+    def get_open_days(self, start_date, end_date):
+        raw = bs.query_trade_dates(start_date, end_date)
+        if raw.error_msg == "网络接收错误。":
+            self._relogin()
+            raw = bs.query_trade_dates(start_date, end_date)
+        data, fields = self.call_baostock(raw)
+        open_days = [d[0] for d in data if d[1] == "1"]
+        return open_days
+
     def scrape_k_data(self, config):
         """
         config = {
