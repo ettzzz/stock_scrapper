@@ -2,16 +2,17 @@
 
 import os
 import traceback
-from concurrent.futures import ThreadPoolExecutor
+
+# from concurrent.futures import ThreadPoolExecutor
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from apscheduler.schedulers.background import BackgroundScheduler
 
 from scraper import stockScraper, liveStockScraper
 from database import stockDatabaseOperator
 from config.static_vars import STOCK_HISTORY_PATH, DEBUG
 from utils.datetime_tools import get_delta_date, get_today_date
+from schedule_maker.bg_schedule import scheduler
 from gibber import gabber
 
 IS_FIRST_RUN = not os.path.exists(STOCK_HISTORY_PATH)
@@ -29,6 +30,7 @@ def first_run_check():
         gabber.info("it's the first run on this instance, initiating basic tables...")
         her_operator._init_basic_tables()
 
+        her_scraper._relogin()
         all4000, all_fields = her_scraper.scrape_whole_pool_data(update_date=today)
         her_operator.update_stock_list(all4000)
 
@@ -41,9 +43,6 @@ def first_run_check():
 
 
 first_run_check()
-exe_boy = ThreadPoolExecutor(1)  # TODO: how this boy is played?
-scheduler = BackgroundScheduler()
-scheduler.start()
 
 
 class codeNameMapping(APIView):

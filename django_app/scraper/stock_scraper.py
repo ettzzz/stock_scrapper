@@ -42,7 +42,7 @@ class stockScraper:
         data, fields = self.call_baostock(raw)
         return data, fields
 
-    def scrape_whole_pool_data(self, update_date=DAY_ZERO, remove_st=False):
+    def scrape_whole_pool_data(self, update_date=DAY_ZERO):
         config = {"date": update_date}
 
         raw = bs.query_stock_industry(**config)
@@ -76,20 +76,16 @@ class stockScraper:
 
         for idx, d in enumerate(data):
             code = d[1]
-            if code in knock:
-                continue
             is_data = ["0", "0", "0"]
-            for i in range(len(is_data)):
-                if code in store[i]:
-                    is_data[i] = "1"
+            if code not in knock:
+                for i in range(len(is_data)):
+                    if code in store[i]:
+                        is_data[i] = "1"
+            else:
+                pass
             data[idx] += is_data
 
-        if remove_st:
-            whole_pool = [d for d in data if "ST" not in d[2]]
-        else:
-            whole_pool = data
-
-        return whole_pool, fields
+        return data, fields
 
     def scrape_feature_list(self):
         """
