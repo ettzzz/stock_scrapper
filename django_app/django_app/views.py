@@ -54,15 +54,9 @@ class codeNameMapping(APIView):
         return Response(name_mapping)
 
 
-class allTrainingCodesSender(APIView):
-    def get(self, request):
-        all_codes = her_operator.get_all_codes(is_train=True)
-        return Response(all_codes)
-
-
 class allCodesSender(APIView):
     def get(self, request):
-        all_codes = her_operator.get_all_codes(is_train=False)
+        all_codes = her_operator.get_all_codes()
         return Response(all_codes)
 
 
