@@ -42,6 +42,11 @@ class stockDatabaseOperator(sqliteBaseOperator):
                 "orgnization": ["TEXT"],
                 "description": ["TEXT"],
             },
+            "news_feature": {
+                "code": ["TEXT", "NOT NULL"],
+                "industry": ["TEXT"],
+                "update_on": ["DATE"],
+            },
             "minute": {
                 "code": ["TEXT"],  # TO BE CREATED
                 "date": ["DATE"],

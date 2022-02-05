@@ -5,6 +5,8 @@ import traceback
 import datetime
 
 # from concurrent.futures import ThreadPoolExecutor
+import numpy as np
+from dtw import dtw
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -13,6 +15,7 @@ from scraper import stockScraper, liveStockScraper
 from database import stockDatabaseOperator
 from config.static_vars import STOCK_HISTORY_PATH, DEBUG
 from utils.datetime_tools import get_delta_date, get_today_date, get_now
+from utils.internet_tools import get_train_news_weight
 from schedule_maker.bg_schedule import scheduler
 from gibber import gabber
 
@@ -88,6 +91,147 @@ class codeLiveFeaturesSender(APIView):
         """
         features = partial_features
         return Response(features)
+
+
+class poolFeaturePicker(APIView):
+    def post(self, request):
+        start_date = request.data["start_date"]
+        end_date = request.data["end_date"]
+
+        features = ["turn", "pctChg"]
+        # by default there should be 4000+ all codes, but actually tiny amount
+        # of them are missing, won't hurt anyways
+        # and the dates ought to be open_days
+        all_tables = her_operator.get_all_tables()
+        day_tables = [t[0] for t in all_tables if t[0].startswith("day")]
+
+        res = dict()
+        for day_table in day_tables:
+            records = her_operator.fetch_by_command(
+                "SELECT {} FROM '{}' \
+                WHERE tradestatus='1' AND date BETWEEN '{}' AND '{}' \
+                ORDER BY code, date;".format(
+                    ",".join(["code", "date"] + features),
+                    day_table,
+                    start_date,
+                    end_date,
+                ),
+            )
+
+            for code, date, turn, pct in records:
+                # TODO: cannot split them properly yet
+                if code not in res:
+                    res[code] = {k: list() for k in features + ["seq"]}
+                    ratio = 1
+                if pct == "":
+                    continue
+                ratio *= 1 + pct / 100
+                res[code]["turn"].append(turn)
+                res[code]["pctChg"].append(pct)
+                res[code]["seq"].append(round(ratio, 3))
+
+        return Response(res)
+
+
+class newsAffiliatedCodeSender(APIView):
+    def get(self):
+        table_name = "affiliated_codes"
+        data = her_operator.fetch_by_command(
+            f"SELECT code, industry FROM {table_name};"
+        )
+
+        return Response(data)
+
+
+class newsAffiliatedCodeUpdater(APIView):
+    def global_update(self):
+        today = get_today_date()
+        end_date = get_delta_date(today, -2)
+        start_date = get_delta_date(today, -92)
+
+        ### price
+        table_name = her_operator.init_table_names["whole_field"]
+        all_codes = her_operator.fetch_by_command(
+            f"SELECT code,industry FROM '{table_name}';"
+        )
+        price_dict = dict()
+        conn = her_operator.on()
+        for code, ind in all_codes:
+            day_table = her_operator._table_dispatch(code, "day")
+            cols = ",".join(her_operator.day_train_cols)
+            day_data = her_operator.fetch_by_command(
+                f"SELECT {cols} FROM '{day_table}' \
+                WHERE code='{code}' AND date BETWEEN '{start_date}' AND '{end_date}';",
+                conn=conn,
+            )
+            price_dict[code] = list()
+            for d in day_data:
+                close, preclose = d[-2:]
+                price_dict[code].append(preclose)
+                price_dict[code].append(close)
+        her_operator.off(conn)
+
+        ### news
+        news_record = get_train_news_weight(start_date, end_date)
+        news_dict = {code: [] for code, ind in all_codes}
+        for i in news_record["results"]:
+            _time = i["time"]
+            if _time.startswith("10:0") or _time.startswith("15"):
+                for code, ind in all_codes:
+                    if code in i["weights_dict"]:
+                        news_dict[code].append(i["weights_dict"][code])
+                    else:
+                        news_dict[code].append(0)
+
+        ### pick
+        pick = list()
+        for code, ind in all_codes:
+            if code not in news_dict or code not in price_dict:
+                continue
+            y1 = price_dict[code]
+            y2 = news_dict[code]
+            if sum(y2) == 0:
+                continue
+            if len(y1) == len(y2):
+                norm_y1 = (y1 - np.min(y1)) / (np.max(y1) - np.min(y1))
+                y2 = (y2 - np.min(y2)) / (np.max(y2) - np.min(y2))
+                alignment = dtw(y2, norm_y1, keep_internals=True, distance_only=True)
+                if alignment.normalizedDistance <= 0.075:
+                    pick.append([code, ind, today])
+        gabber.info(f"news affiliated code update done, {len(pick)} in total.")
+
+        ### update
+        table_name = "affiliated_codes"
+        conn = her_operator.on()
+        conn.execute(
+            her_operator.create_table_sql_command(
+                table_name, her_operator.stock_fields["news_feature"]
+            )
+        )
+        her_operator.off(conn)
+        her_operator.delete_table(table_name)
+        conn = her_operator.on()
+        fields = list(her_operator.stock_fields["news_feature"].keys())
+        insert_sql = her_operator.insert_batch_sql_command(table_name, fields)
+        conn.executemany(insert_sql, pick)
+        her_operator.off(conn)
+
+    def post(self, request):
+        is_plan = request.data["is_plan"]
+        if is_plan in [1, "1"]:
+            _run_date = datetime.datetime.fromtimestamp(round(get_now() + 3))
+        else:
+            tomorrow = get_delta_date(get_today_date(), 2)
+            _run_date = "{} 03:01:00".format(
+                tomorrow
+            )  # this should be called on Friday and will run on Sunday
+
+        scheduler.add_job(
+            func=self.global_update,
+            trigger="date",
+            run_date=_run_date,
+        )
+        return Response({"msg": "Update will be started ({}).".format(_run_date)})
 
 
 class globalFeaturesUpdater(APIView):

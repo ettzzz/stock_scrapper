@@ -26,6 +26,13 @@ api_v1 = [
     url("update", views.globalFeaturesUpdater.as_view(), name="update"),
     url("all_codes", views.allCodesSender.as_view(), name="all_codes"),
     url("code_name", views.codeNameMapping.as_view(), name="code_name"),
+    url("pool_feature", views.poolFeaturePicker.as_view(), name="pool_feature"),
+    url("update_news", views.newsAffiliatedCodeUpdater.as_view(), name="update_news"),
+    url(
+        "affiliated_codes",
+        views.newsAffiliatedCodeSender.as_view(),
+        name="affiliated_codes",
+    ),
 ]
 
 
