@@ -10,8 +10,9 @@ import os
 import logging
 import logging.config
 
-from config.static_vars import ROOT, DEBUG
 from config.static_vars import (
+    ROOT,
+    IS_DEBUG,
     LOGGING_FMT,
     LOGGING_DATE_FMT,
     LOGGING_NAME,
@@ -19,7 +20,7 @@ from config.static_vars import (
 )
 
 
-def get_logger(debug=DEBUG):
+def get_logger(debug=IS_DEBUG):
     """
     # # print log info
     # logger.debug('debug message')
@@ -50,3 +51,6 @@ def get_logger(debug=DEBUG):
         sh.setFormatter(formatter)
         logger.addHandler(sh)
     return logger
+
+
+gabber = get_logger()
