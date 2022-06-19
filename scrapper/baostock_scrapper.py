@@ -43,6 +43,10 @@ class stockScrapper:
         open_days = [d["calendar_date"] for d in data if d["is_trading_day"] == "1"]
         return open_days
 
+    def if_date_open(self, date):
+        open_days = self.get_open_days(date, date)
+        return len(open_days) > 0
+
     def scrape_k_data(self, config):
         """
         config = {
@@ -114,46 +118,3 @@ class stockScrapper:
                     features.append(content)  # kind of stupid way but it works
 
         return features
-
-    # def scrape_feature_data(self, feature_codes, start_date, end_date):
-    #     feature_codes_str = [c[0] for c in feature_codes]
-
-    #     dates, _ = self.scrape_k_data(
-    #         {
-    #             "code": "sh.000001",
-    #             "fields": "date",
-    #             "start_date": start_date,
-    #             "end_date": end_date,
-    #             "frequency": "d",
-    #             "adjustflag": "1",
-    #         }
-    #     )  # get valid dates first
-
-    #     store = {date[0]: [] for date in dates}
-    #     for idx, code in enumerate(feature_codes):
-    #         code = code[0]
-    #         config = {
-    #             "code": code,
-    #             "fields": "date,pctChg",
-    #             "start_date": start_date,
-    #             "end_date": end_date,
-    #             "frequency": "d",
-    #             "adjustflag": "1",
-    #         }
-    #         fetched, _ = self.scrape_k_data(config)
-    #         temp_dict = dict(fetched)
-    #         for date in store:
-    #             if date in temp_dict:
-    #                 store[date].append(temp_dict[date])
-    #             else:
-    #                 store[date].append("0")
-
-    #     stacks = []
-    #     for date, indices in store.items():
-    #         stacks.append([date, ",".join(feature_codes_str), ",".join(indices)])
-
-    #     return stacks
-
-
-if __name__ == "__main__":
-    her_scraper = stockScrapper()

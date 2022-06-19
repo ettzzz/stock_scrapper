@@ -22,3 +22,7 @@ __pycache__/
 
 # logger log
 jibberjabber.log
+
+# secrets
+local_secrets.py
+
