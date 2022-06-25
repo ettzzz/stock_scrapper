@@ -64,7 +64,7 @@ def call_for_update():
     feature_codes = her_operator.get_all_feature_codes()
     for idx, fcode in enumerate(feature_codes):
         table_name = her_operator.init_table_names["all_feature_data"]
-        # start_date = her_operator.get_latest_date(table_name, match={"code": fcode})
+        start_date = her_operator.get_latest_date(table_name, match={"code": fcode})
         config = her_operator.build_scrape_config(
             fcode,
             start_date,
@@ -73,6 +73,8 @@ def call_for_update():
         )
         config.update({"fields": "code,date,pctChg,tradestatus,turn"})
         fetched, fields = her_scrapper.scrape_k_data(config)
+        if len(fetched) > 0 and fetched[0]["date"] == start_date:
+            continue  ## in case of no data updated.
         her_operator.insert_data(table_name, fetched, conn)
 
     her_operator.off()
