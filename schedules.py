@@ -73,7 +73,9 @@ def call_for_update():
         )
         config.update({"fields": "code,date,pctChg,tradestatus,turn"})
         fetched, fields = her_scrapper.scrape_k_data(config)
-        if len(fetched) > 0 and fetched[0]["date"] == start_date:
+        if len(fetched) == 0:
+            continue  ## actually this condition is redundant, her_operator.insert_data has secure
+        if len(fetched) > 0 and fetched[-1]["date"] == start_date:
             continue  ## in case of no data updated.
         her_operator.insert_data(table_name, fetched, conn)
 
