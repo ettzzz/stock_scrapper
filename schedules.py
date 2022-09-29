@@ -10,35 +10,34 @@ from database.stock_operator import stockDatabaseOperator
 from scrapper.baostock_scrapper import stockScrapper
 from utils.datetime_tools import get_today_date, get_delta_date
 
-# from utils.gibber import gabber
+from utils.gibber import gabber
 
 
-def call_for_update():
+def call_for_update(start_date=None):
+    dtype = "day"
+    her_scrapper = stockScrapper()
+    her_operator = stockDatabaseOperator()
     today = get_today_date()
     yesterday = get_delta_date(today, -1)
-    her_scrapper = stockScrapper()
-    ## ask if opened yesterday, if not, return
-    if not her_scrapper.if_date_open(yesterday):
-        return
-
-    ## get end_date, start_date out of feature data
-    dtype = "day"
     end_date = yesterday
-    her_operator = stockDatabaseOperator()
     conn = her_operator.on()
 
-    ## replace all_codes
+    if start_date is None:  ## general update
+        if not her_scrapper.if_date_open(yesterday):
+            return  ## if not a trading day, return
+        table_name = her_operator.init_table_names["all_feature_data"]
+        start_date = her_operator.get_latest_date(table_name, date_key="updateDate")
+
     table_name = her_operator.init_table_names["all_codes"]
-    fetched, _ = her_scrapper.scrape_whole_pool_data(update_date=end_date)
+    fetched, _ = her_scrapper.scrape_whole_pool_data(update_date=yesterday)
     new_update_date = fetched[0]["updateDate"]
     last_update_date = her_operator.get_latest_date(table_name, date_key="updateDate")
     if new_update_date != last_update_date:
-        ## this operation is quite slow, avoid doing it everyday.
         her_operator.replace_data(table_name, fetched, conn)
+        ## this operation is quite slow, avoid doing it everyday.
     else:
         del fetched
 
-    ## update day data
     all_codes = her_operator.get_all_codes()
     for idx, code in enumerate(all_codes):
         table_name = her_operator.table_dispatch(code, dtype)
@@ -51,6 +50,7 @@ def call_for_update():
         )
         fetched, fields = her_scrapper.scrape_k_data(config)
         her_operator.insert_data(table_name, fetched, conn)
+        gabber.info(f"scrapping code {code}")
 
     ## replace feature_codes
     table_name = her_operator.init_table_names["all_feature_codes"]
@@ -76,6 +76,7 @@ def call_for_update():
         if len(fetched) > 0 and fetched[0]["date"] == start_date:
             continue  ## in case of no data updated.
         her_operator.insert_data(table_name, fetched, conn)
+        gabber.info(f"scrapping feature code {fcode}")
 
     her_operator.off()
     return

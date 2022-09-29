@@ -15,7 +15,7 @@ class BaseMongoOperator:
         self.db_name = db_name
 
     def on(self):
-        self.cli = pymongo.MongoClient(self.mongo_uri)
+        self.cli = pymongo.MongoClient(self.mongo_uri, maxPoolSize=50)
         self.db = self.cli[self.db_name]
         return self.db
 
