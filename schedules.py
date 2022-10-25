@@ -9,8 +9,7 @@ Created on Wed Jun 15 13:38:45 2022
 from database.stock_operator import stockDatabaseOperator
 from scrapper.baostock_scrapper import stockScrapper
 from utils.datetime_tools import get_today_date, get_delta_date
-
-from utils.gibber import gabber
+from utils.gibber import get_logger
 
 
 def call_for_update(start_date=None):
@@ -20,28 +19,35 @@ def call_for_update(start_date=None):
     today = get_today_date()
     yesterday = get_delta_date(today, -1)
     end_date = yesterday
+    gabber = get_logger()
     conn = her_operator.on()
 
     if start_date is None:  ## general update
         if not her_scrapper.if_date_open(yesterday):
             return  ## if not a trading day, return
         table_name = her_operator.init_table_names["all_feature_data"]
-        start_date = her_operator.get_latest_date(table_name, date_key="updateDate")
+        start_date = her_operator.get_latest_date(
+            table_name, date_key="updateDate", conn=conn
+        )
 
     table_name = her_operator.init_table_names["all_codes"]
     fetched, _ = her_scrapper.scrape_whole_pool_data(update_date=yesterday)
     new_update_date = fetched[0]["updateDate"]
-    last_update_date = her_operator.get_latest_date(table_name, date_key="updateDate")
+    last_update_date = her_operator.get_latest_date(
+        table_name, date_key="updateDate", conn=conn
+    )
     if new_update_date != last_update_date:
         her_operator.replace_data(table_name, fetched, conn)
         ## this operation is quite slow, avoid doing it everyday.
     else:
         del fetched
 
-    all_codes = her_operator.get_all_codes()
+    all_codes = her_operator.get_all_codes(conn)
     for idx, code in enumerate(all_codes):
         table_name = her_operator.table_dispatch(code, dtype)
-        start_date = her_operator.get_latest_date(table_name, match={"code": code})
+        start_date = her_operator.get_latest_date(
+            table_name, match={"code": code}, conn=conn
+        )
         config = her_operator.build_scrape_config(
             code,
             start_date,
@@ -61,10 +67,12 @@ def call_for_update(start_date=None):
     her_operator.replace_data(table_name, fetched, conn)
 
     ## update feature_data
-    feature_codes = her_operator.get_all_feature_codes()
+    feature_codes = her_operator.get_all_feature_codes(conn)
     for idx, fcode in enumerate(feature_codes):
         table_name = her_operator.init_table_names["all_feature_data"]
-        start_date = her_operator.get_latest_date(table_name, match={"code": fcode})
+        start_date = her_operator.get_latest_date(
+            table_name, match={"code": fcode}, conn=conn
+        )
         config = her_operator.build_scrape_config(
             fcode,
             start_date,

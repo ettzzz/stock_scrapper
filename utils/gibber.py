@@ -51,6 +51,3 @@ def get_logger(debug=IS_DEBUG):
         sh.setFormatter(formatter)
         logger.addHandler(sh)
     return logger
-
-
-gabber = get_logger()

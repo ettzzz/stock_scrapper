@@ -157,27 +157,30 @@ class stockDatabaseOperator(BaseMongoOperator):
             config["frequency"] = "d"
         return config
 
-    def get_all_codes(self):
+    def get_all_codes(self, conn=None):
+        if conn is None:
+            conn = self.on()
         table_name = self.init_table_names["all_codes"]
-        conn = self.on()
         col = conn[table_name]
         all_codes = [q["code"] for q in col.find({})]
-        self.off()
 
         return all_codes
 
-    def get_all_feature_codes(self):
+    def get_all_feature_codes(self, conn=None):
+        if conn is None:
+            conn = self.on()
         table_name = self.init_table_names["all_feature_codes"]
-        conn = self.on()
         col = conn[table_name]
         all_feature_codes = [q["code"] for q in col.find({})]
-        self.off()
 
         return all_feature_codes
 
-    def get_feature_data(self, code, start_date, end_date, query_key="pctChg"):
+    def get_feature_data(
+        self, code, start_date, end_date, query_key="pctChg", conn=None
+    ):
+        if conn is None:
+            conn = self.on()
         table_name = self.init_table_names["all_feature_data"]
-        conn = self.on()
         col = conn[table_name]
         all_feature_data = {"code": code, query_key: list(), "date": list()}
         query_res = col.aggregate(
@@ -197,11 +200,11 @@ class stockDatabaseOperator(BaseMongoOperator):
             all_feature_data[query_key].append(q[query_key])
             all_feature_data["date"].append(q["_id"])
 
-        self.off()
         return all_feature_data
 
-    def get_latest_date(self, table_name, date_key="date", match={}):
-        conn = self.on()
+    def get_latest_date(self, table_name, date_key="date", match={}, conn=None):
+        if conn is None:
+            conn = self.on()
         col = conn[table_name]
         query_res = col.aggregate(
             [{"$sort": {date_key: -1}}, {"$match": match}, {"$limit": 1}]
@@ -209,17 +212,16 @@ class stockDatabaseOperator(BaseMongoOperator):
 
         try:
             q = query_res.next()
-            self.off()
             if q.get(date_key) is not None:
                 return q[date_key]
             else:
                 raise f"No date key named {date_key}!"
         except:  # raise StopIteration
-            self.off()
             return DAY_ZERO
 
-    def get_cn_name(self, codes):
-        conn = self.on()
+    def get_cn_name(self, codes, conn=None):
+        if conn is None:
+            conn = self.on()
         table_name = self.init_table_names["all_codes"]
         col = conn[table_name]
         query_res = col.aggregate(
@@ -230,5 +232,4 @@ class stockDatabaseOperator(BaseMongoOperator):
         )
 
         result = {qa["_id"]: qa["code_name"] for qa in query_res}
-        self.off()
         return result
