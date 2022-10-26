@@ -27,7 +27,7 @@ def call_for_update(start_date=None):
             return  ## if not a trading day, return
         table_name = her_operator.init_table_names["all_feature_data"]
         start_date = her_operator.get_latest_date(
-            table_name, date_key="updateDate", conn=conn
+            table_name, date_key="date", conn=conn
         )
 
     table_name = her_operator.init_table_names["all_codes"]
