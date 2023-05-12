@@ -81,7 +81,7 @@ def call_for_update(start_date=None):
         )
         config.update({"fields": "code,date,pctChg,tradestatus,turn"})
         fetched, fields = her_scrapper.scrape_k_data(config)
-        if len(fetched) > 0 and fetched[0]["date"] == start_date:
+        if len(fetched) > 0 and fetched[-1]["date"] == start_date:
             continue  ## in case of no data updated.
         her_operator.insert_data(table_name, fetched, conn)
         gabber.info(f"scrapping feature code {fcode}")
