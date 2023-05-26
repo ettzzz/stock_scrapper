@@ -5,14 +5,17 @@ Created on Wed Jun 15 13:40:14 2022
 
 @author: eee
 """
+import time
 
 from database.base_mongo import BaseMongoOperator
 from config.static_vars import DAY_ZERO, MONGO_URI, DB_NAME
 
 
 class stockDatabaseOperator(BaseMongoOperator):
-    def __init__(self, mongo_uri=MONGO_URI, db_name=DB_NAME):
+    def __init__(self, mongo_uri=MONGO_URI, db_name=DB_NAME, safety_first=True):
         super().__init__(mongo_uri, db_name)
+        self.chunk_size = 400
+        self.safety_first = safety_first
         self.init_table_names = {
             "all_codes": "all_codes",
             "all_feature_codes": "all_feature_codes",
@@ -122,6 +125,27 @@ class stockDatabaseOperator(BaseMongoOperator):
         market, number = code.split(".")
         table_name = "_".join([_type, market, number[:3]])
         return table_name
+    
+    def chunk_yielder(self, data):
+        chunk = list()
+        for i, d in enumerate(data):
+            if i % self.chunk_size == 0 and i > 0:
+                yield chunk
+                del chunk [:]
+            chunk.append(d)
+        yield chunk
+        
+
+    def _safe_insert(self, data, col, retry=0):
+        if retry >= 3:
+            return
+        try:
+            col.insert_many(data)
+            time.sleep(1)
+            return
+        except:
+            time.sleep(1)
+            return self._safe_insert(data, col, retry+1)
 
     def insert_data(self, table_name, data_list, conn):
         if not data_list:
@@ -133,7 +157,12 @@ class stockDatabaseOperator(BaseMongoOperator):
         else:
             _type = table_name.split("_")[0]
         data_list = self._type_convertor(data_list, self.stock_fields.get(_type))
-        col.insert_many(data_list)
+        if self.safety_first == True:
+            chunks = self.chunk_yielder(data_list)
+            for data_chunk in chunks:
+                self._safe_insert(data_chunk, col)
+        else:
+            col.insert_many(data_list)
 
     def replace_data(self, table_name, new_data_list, conn):
         self.purge_table_with_caution(table_name)
