@@ -10,17 +10,14 @@ import os
 import logging
 import logging.config
 
-from config.static_vars import (
-    ROOT,
-    IS_DEBUG,
-    LOGGING_FMT,
-    LOGGING_DATE_FMT,
-    LOGGING_NAME,
-    STREAMING_FMT,
-)
+from config.static_vars import ROOT, DEBUG
+LOGGING_FMT = "%(asctime)s %(levelname)s %(funcName)s in %(filename)s: %(message)s"
+LOGGING_DATE_FMT = "%Y-%m-%d %a %H:%M:%S"
+LOGGING_NAME = "jibberjabber"
+STREAMING_FMT = "%(levelname)s %(funcName)s %(message)s"
 
 
-def get_logger(debug=IS_DEBUG):
+def get_logger(debug=DEBUG):
     """
     # # print log info
     # logger.debug('debug message')

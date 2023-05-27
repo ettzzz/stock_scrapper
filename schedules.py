@@ -19,7 +19,7 @@ def call_for_update(start_date=None):
     today = get_today_date()
     yesterday = get_delta_date(today, -1)
     end_date = yesterday
-    gabber = get_logger()
+    logger = get_logger()
     conn = her_operator.on()
 
     if start_date is None:  ## general update
@@ -56,7 +56,7 @@ def call_for_update(start_date=None):
         )
         fetched, fields = her_scrapper.scrape_k_data(config)
         her_operator.insert_data(table_name, fetched, conn)
-        gabber.info(f"scrapping code {code}")
+        logger.info(f"scrapping code {code}")
 
     ## replace feature_codes
     table_name = her_operator.init_table_names["all_feature_codes"]
@@ -84,7 +84,7 @@ def call_for_update(start_date=None):
         if len(fetched) > 0 and fetched[-1]["date"] == start_date:
             continue  ## in case of no data updated.
         her_operator.insert_data(table_name, fetched, conn)
-        gabber.info(f"scrapping feature code {fcode}")
+        logger.info(f"scrapping feature code {fcode}")
 
     her_operator.off()
     return
