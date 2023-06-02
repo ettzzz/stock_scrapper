@@ -235,9 +235,7 @@ class stockDatabaseOperator(BaseMongoOperator):
         if conn is None:
             conn = self.on()
         col = conn[table_name]
-        query_res = col.aggregate(
-            [{"$sort": {date_key: -1}}, {"$match": match}, {"$limit": 1}]
-        )
+        query_res = col.aggregate([{"$sort": {"_id": -1}}, {"$match": match}, {"$limit": 1}])
 
         try:
             q = query_res.next()
