@@ -3,6 +3,8 @@
 import time
 import datetime
 
+from utils.gibber import logger
+
 DATE_FORMAT = "%Y-%m-%d"
 
 def struct_timestr(timestr, _format = DATE_FORMAT):
@@ -70,6 +72,6 @@ def date_range(start, end, step=1, format_=DATE_FORMAT, category = 'all'):
                 workdays.append(strftime(new_day, format_))
         return workdays
     else:
-        print('Wrong day category!, only "all", "weekday" and "workday" are acceptable.')
+        logger.error('Wrong day category!, only "all", "weekday" and "workday" are acceptable.')
         return []
     #strptime(start, format_).weekday() # 0 monday 1 Tuesday, 6 Sunday

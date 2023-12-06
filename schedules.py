@@ -9,7 +9,7 @@ Created on Wed Jun 15 13:38:45 2022
 from database.stock_operator import stockDatabaseOperator
 from scrapper.baostock_scrapper import stockScrapper
 from utils.datetime_tools import get_today_date, get_delta_date
-from utils.gibber import get_logger
+from utils.gibber import logger
 
 
 def call_for_update(start_date=None):
@@ -19,7 +19,6 @@ def call_for_update(start_date=None):
     today = get_today_date()
     yesterday = get_delta_date(today, -1)
     end_date = yesterday
-    logger = get_logger()
     conn = her_operator.on()
 
     if start_date is None:  ## general update
