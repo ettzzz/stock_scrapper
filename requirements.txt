@@ -1,5 +1,11 @@
-pymongo==4.1.1
-baostock==0.8.8
+# pymongo==4.1.1
+pandas==1.5.3
+numpy==2.1.2
+baostock==0.8.9
 requests==2.26.0
 bs4==0.0.1
 APScheduler==3.9.1
+flask or fastapi
+
+torch==2.0.0
+transformer==4.33.3

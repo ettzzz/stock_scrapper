@@ -16,6 +16,7 @@ __pycache__/
 
 # Self generated sqlite3 db file
 *.db
+*.csv
 
 # MacOS temp file
 *.DS_Store
@@ -26,3 +27,4 @@ jibberjabber.log
 # secrets
 local_secrets.py
 
+*.png
