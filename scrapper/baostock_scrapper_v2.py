@@ -1,5 +1,4 @@
 
-
 from datetime import datetime, timedelta
 
 import requests
@@ -113,7 +112,6 @@ if __name__ == "__main__":
     df = t.get_k_data_df(code, frequency, start_date, end_date)
 
     print("helloworld")
-
 
 
 

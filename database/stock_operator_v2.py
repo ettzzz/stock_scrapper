@@ -39,7 +39,6 @@ class StockDatabase:
                 UNIQUE(code, date)
             );
         '''
-
         # Execute the SQL statement to create the table
         self.conn.execute(create_table_sql)
 
