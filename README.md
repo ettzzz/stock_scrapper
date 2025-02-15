@@ -1,2 +1,2 @@
-# baostock_django_api
+# baostock collecting stock market data
  private use

@@ -7,7 +7,6 @@ ENV/
 env.bak/
 venv.bak/
 
-
 # Spyder project settings
 .spyproject
 
@@ -16,13 +15,8 @@ __pycache__/
 
 # Self generated sqlite3 db file
 *.db
+*.csv
+*.log
 
 # MacOS temp file
 *.DS_Store
-
-# logger log
-jibberjabber.log
-
-# secrets
-local_secrets.py
-

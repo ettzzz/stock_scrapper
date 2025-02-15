@@ -1,5 +1,8 @@
-pymongo==4.1.1
-baostock==0.8.8
+# pymongo==4.1.1
+pandas==1.5.3
+baostock==0.8.9
+numpy==1.26.4
 requests==2.26.0
 bs4==0.0.1
 APScheduler==3.9.1
+flask==3.1.0
