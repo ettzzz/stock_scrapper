@@ -11,8 +11,8 @@ import random
 import requests
 
 from utils.datetime_tools import get_now
-from config.static_vars import UA
 
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0"
 
 class liveStockScraper:
     def _sh_formatter(self, before, cat="date"):

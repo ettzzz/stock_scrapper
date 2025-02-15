@@ -1,28 +1,25 @@
-FROM python:3.8.16-slim-buster
+# Use an official Python runtime as a parent image
+FROM python:3.9-slim
 
-ENV DEBIAN_FRONTEND noninteractive
-ENV LC_ALL=C.UTF-8
-ENV LANG=C.UTF-8
-ENV _DEPLOY=1
-RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-    && echo 'Asia/Shanghai' >/etc/timezone
-RUN sed -i s/deb.debian.org/mirrors.aliyun.com/g /etc/apt/sources.list \
-    && apt-get -qq update \
-    && apt-get install -yq sudo vim gcc \
-    && rm -rf /var/lib/apt/lists/*
-# gcc for apscheduler build
+# Set the timezone to UTC-8 (China Standard Time)
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-## create a non-root user
-ARG USER_ID=1000
-RUN useradd -m --no-log-init --system  --uid ${USER_ID} appuser -g sudo \
-    && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-USER appuser
-ENV PATH="/home/appuser/.local/bin:${PATH}"
+# Set the working directory in the container
+WORKDIR /app
 
-WORKDIR /home/appuser/project/
-COPY --chmod=777 ./ /home/appuser/project/
+# Copy the current directory contents into the container at /app
+COPY . /app
 
-RUN /usr/local/bin/python3 -m pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple \
-    && pip install -r ./requirements.txt --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple && pip cache purge
+# Install any needed packages specified in requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir uvicorn
 
-CMD ["python", "main.py"]
+# Make port 5000 available to the world outside this container
+EXPOSE 5000
+
+# Define environment variable
+ENV DEBUG=0
+
+# Run main.py when the container launches
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]
